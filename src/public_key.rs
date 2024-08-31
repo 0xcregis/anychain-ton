@@ -118,6 +118,6 @@ mod tests {
             .unwrap();
         let keypair = mnemonic.generate_keypair(None).unwrap();
 
-        assert_eq!(public_key.0.to_bytes(), keypair.pkey);
+        assert_eq!(public_key.0.to_bytes(), keypair.public_key);
     }
 }

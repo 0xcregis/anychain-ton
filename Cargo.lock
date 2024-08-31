@@ -21,7 +21,7 @@ dependencies = [
 
 [[package]]
 name = "anychain-ton"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anychain-core",
  "base64 0.22.1",
@@ -128,9 +128,9 @@ dependencies = [
 
 [[package]]
 name = "cpufeatures"
-version = "0.2.12"
+version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53fe5e26ff1b7aef8bca9c6080520cfb8d9333c7568e1829cef191a9723e5504"
+checksum = "51e852e6dc9a5bed1fae92dd2375037bf2b768725bf3be87811edee3249d09ad"
 dependencies = [
  "libc",
 ]
@@ -323,9 +323,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
-version = "0.2.155"
+version = "0.2.158"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
+checksum = "d8adc4bb1803a324070e64a98ae98f38934d91957a99cfb3a43dcbc01bc56439"
 
 [[package]]
 name = "memchr"
@@ -439,9 +439,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.36"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fa76aaf39101c457836aec0ce2316dbdc3ab723cdda1c6bd4e6ad4208acaca7"
+checksum = "b5b9d34b8991d19d98081b46eacdd8eb58c6f2b201139f7c5f643cc155a633af"
 dependencies = [
  "proc-macro2",
 ]
@@ -522,18 +522,18 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
 name = "serde"
-version = "1.0.204"
+version = "1.0.209"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc76f558e0cbb2a839d37354c575f1dc3fdc6546b5be373ba43d95f231bf7c12"
+checksum = "99fce0ffe7310761ca6bf9faf5115afbc19688edd00171d81b1bb1b116c63e09"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.204"
+version = "1.0.209"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0cd7e117be63d3c3678776753929474f3b04a43a080c744d6b0ae2a8c28e222"
+checksum = "a5831b979fd7b5439637af1752d535ff49f4860c0f341d1baeb6faf0f4242170"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -542,9 +542,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.121"
+version = "1.0.127"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ab380d7d9f22ef3f21ad3e6c1ebe8e4fc7a2000ccba2e4d71fc96f15b2cb609"
+checksum = "8043c06d9f82bd7271361ed64f415fe5e12a77fdb52e573e7f06a516dea329ad"
 dependencies = [
  "itoa",
  "memchr",
@@ -622,9 +622,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "syn"
-version = "2.0.72"
+version = "2.0.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc4b9b9bf2add8093d3f2c0204471e951b2285580335de42f9d2534f3ae7a8af"
+checksum = "9f35bcdf61fd8e7be6caf75f429fdca8beb3ed76584befb503b1569faee373ed"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -659,9 +659,9 @@ dependencies = [
 
 [[package]]
 name = "tlb"
-version = "0.2.22"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ea5376ffa60c20c92a9bbf8e1ab4ddeea80a8e89dcab80da81b96a6efe5b95f"
+checksum = "8a1097b8629040eeec8dd98f5ec53a43bda625d99175a17bdda92f5404e402d2"
 dependencies = [
  "bitvec",
  "hex",
@@ -672,9 +672,9 @@ dependencies = [
 
 [[package]]
 name = "tlb-ton"
-version = "0.2.22"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58ff6699b88fc3246b8232fea4504e695ae9e64219c928f3a262dd4404916b46"
+checksum = "0379ec1634d990e288969f92fe0ac806f38fb4701debd10a33157ee083fd7ffa"
 dependencies = [
  "base64 0.21.7",
  "chrono",
@@ -690,9 +690,9 @@ dependencies = [
 
 [[package]]
 name = "tlbits"
-version = "0.2.22"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a631f5e8bb007e1da78403a1d802ef24bed70f1ed3c01a4e3709c3689df92a11"
+checksum = "1897550ee56c1ec419cdea6aff13d272c323b424dddf04b0b60e18822be72854"
 dependencies = [
  "bitvec",
  "either",
@@ -704,9 +704,9 @@ dependencies = [
 
 [[package]]
 name = "ton-contracts"
-version = "0.2.22"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f68bbdfebf88d740fc0e8c4732cd18f30b718e76f00d8c5646931c79fedc981"
+checksum = "3f69a5dec650154397423a05805f78a7ff52ae15f5d5b4b2062fcfd1eb81c03b"
 dependencies = [
  "anyhow",
  "bitvec",
@@ -723,9 +723,9 @@ dependencies = [
 
 [[package]]
 name = "toner"
-version = "0.2.22"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fea8be29a43c0a23965d279171b9477c444e592ef89802d8d4835db7e8b3aac"
+checksum = "ecf9dbe7b7df561bcfaf0cdfc1d4f8eeac7905152517244a5fe69dd32a6fd3ea"
 dependencies = [
  "tlb",
  "tlb-ton",
