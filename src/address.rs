@@ -5,9 +5,8 @@ use {
         fmt::{Display, Formatter, Result as FmtResult},
         str::FromStr,
     },
-    toner::contracts::wallet::{WalletVersion, DEFAULT_WALLET_ID},
-    toner::ton::state_init::StateInit,
-    toner::ton::MsgAddress,
+    tlb_ton::{state_init::StateInit, MsgAddress},
+    ton_contracts::wallet::{WalletVersion, DEFAULT_WALLET_ID},
 };
 
 /// Represents a Solana address
@@ -33,14 +32,12 @@ impl Address for TonAddress {
         public_key: &Self::PublicKey,
         format: &Self::Format,
     ) -> Result<Self, AddressError> {
-        // Wallet::<V4R2>::derive_default(keypair).unwrap()
-
         let workchain_id = 0;
         let address = MsgAddress::derive(
             workchain_id,
             StateInit {
-                code: Some(toner::contracts::wallet::v4r2::V4R2::code()),
-                data: Some(toner::contracts::wallet::v4r2::V4R2::init_data(
+                code: Some(ton_contracts::wallet::v4r2::V4R2::code()),
+                data: Some(ton_contracts::wallet::v4r2::V4R2::init_data(
                     DEFAULT_WALLET_ID,
                     public_key.0.to_bytes(),
                 )),
@@ -98,7 +95,6 @@ impl Display for TonAddress {
                 write!(f, "{}", self.msg_address.to_base64_std_flags(true, true))
             }
         }
-        // write!(f, "{}", self.0.to_string())
     }
 }
 
@@ -110,8 +106,6 @@ mod tests {
     use anychain_core::public_key::PublicKey;
     use core::str::FromStr;
     use ed25519_dalek::PUBLIC_KEY_LENGTH;
-    // use toner::contracts::wallet::{mnemonic::Mnemonic, v4r2::V4R2, Wallet};
-    // use toner::ton::MsgAddress;
 
     #[test]
     fn test_address_from_str() {

@@ -1,11 +1,12 @@
 [package]
 name = "anychain-ton"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 
 [dependencies]
 anychain-core = { version = "0.1.6" }
-toner = "0.3"
+ton-contracts = "0.3.2"
+tlb-ton = "0.3.2"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 nacl = "0.5.3"
 ed25519-dalek = "=1.0.1"

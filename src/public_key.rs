@@ -67,7 +67,8 @@ impl fmt::Display for TonPublicKey {
 mod tests {
     use super::*;
     use anychain_core::PublicKey;
-    use toner::contracts::wallet::mnemonic::Mnemonic;
+    // use toner::contracts::wallet::mnemonic::Mnemonic;
+    use ton_contracts::wallet::mnemonic::Mnemonic;
 
     #[test]
     fn test_public_key_from_str_official_demo() {

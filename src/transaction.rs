@@ -5,7 +5,7 @@ use anychain_core::{Transaction, TransactionError, TransactionId};
 use std::{fmt, str::FromStr};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SolanaTransactionParameters {
+pub struct TonTransactionParameters {
     pub token: Option<TonAddress>,
     pub from: TonAddress,
     pub to: TonAddress,
@@ -15,7 +15,7 @@ pub struct SolanaTransactionParameters {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TonTransaction {
-    pub params: SolanaTransactionParameters,
+    pub params: TonTransactionParameters,
     pub signature: Option<Vec<u8>>,
 }
 
@@ -41,7 +41,7 @@ impl Transaction for TonTransaction {
     type Address = TonAddress;
     type Format = TonFormat;
     type PublicKey = TonPublicKey;
-    type TransactionParameters = SolanaTransactionParameters;
+    type TransactionParameters = TonTransactionParameters;
     type TransactionId = TonTransactionId;
 
     fn new(params: &Self::TransactionParameters) -> Result<Self, TransactionError> {
