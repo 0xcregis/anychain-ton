@@ -1,12 +1,16 @@
 [package]
 name = "anychain-ton"
-version = "0.1.2"
+description = "A Rust library for Ton-focused cryptocurrency wallets, enabling seamless transactions on the Solana blockchain"
+version = "0.1.3"
+keywords = ["ton", "blockchain", "cryptocurrency", "wallet", "transactions"]
+authors = ["Shawndslee", "cregis.com"]
 edition = "2021"
+homepage = "https://www.cregis.com"
+license = "MIT/Apache-2.0"
+repository = "https://github.com/0xcregis/anychain-ton"
 
 [dependencies]
 anychain-core = { version = "0.1.6" }
-#ton-contracts = "0.3.2"
-#tlb-ton = "0.3.2"
 tonlib-core = { git = "https://github.com/loki-cmu/tonlib-rs.git", branch = "main" }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 nacl = "0.5.3"
