@@ -25,6 +25,8 @@ Then, run cargo build to download and compile the library.
 ## Usage
 
 ```shell
+cargo build --example simple-transfer
+cargo run --example simple-transfer
 ```
 
 ## License

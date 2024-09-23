@@ -19,3 +19,7 @@ base64 = "0.22.1"
 crc16 = "0.4.0"
 hex = "0.4.3"
 
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+toncenter = "0.1.0"
+num-bigint = { version = "0.4", features = ["serde"] }
