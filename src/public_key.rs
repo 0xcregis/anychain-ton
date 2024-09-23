@@ -67,8 +67,7 @@ impl fmt::Display for TonPublicKey {
 mod tests {
     use super::*;
     use anychain_core::PublicKey;
-    // use toner::contracts::wallet::mnemonic::Mnemonic;
-    use ton_contracts::wallet::mnemonic::Mnemonic;
+    use tonlib_core::mnemonic::{KeyPair, Mnemonic};
 
     #[test]
     fn test_public_key_from_str_official_demo() {
@@ -114,11 +113,10 @@ mod tests {
         let secret_key = ed25519_dalek::SecretKey::from_bytes(&secret_bytes).unwrap();
         let public_key: TonPublicKey = TonPublicKey::from_secret_key(&secret_key);
 
-        let mnemonic: Mnemonic = "private two helmet history gravity disease impact slice because silent crunch mammal divert kind faint ketchup holiday soup drill during wash mandate fade mention"
-            .parse()
-            .unwrap();
-        let keypair = mnemonic.generate_keypair(None).unwrap();
+        let mnemonic = "private two helmet history gravity disease impact slice because silent crunch mammal divert kind faint ketchup holiday soup drill during wash mandate fade mention";
+        let mnemonic = Mnemonic::from_str(mnemonic, &None).unwrap();
+        let keypair: KeyPair = mnemonic.to_key_pair().unwrap();
 
-        assert_eq!(public_key.0.to_bytes(), keypair.public_key);
+        assert_eq!(public_key.0.to_bytes(), keypair.public_key.as_slice());
     }
 }

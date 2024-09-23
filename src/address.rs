@@ -5,14 +5,14 @@ use {
         fmt::{Display, Formatter, Result as FmtResult},
         str::FromStr,
     },
-    tlb_ton::{state_init::StateInit, MsgAddress},
-    ton_contracts::wallet::{WalletVersion, DEFAULT_WALLET_ID},
+    tonlib_core::types::TonAddress as InnerTonAddress,
+    tonlib_core::wallet::{TonWallet, WalletVersion, DEFAULT_WALLET_ID},
 };
 
 /// Represents a Solana address
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TonAddress {
-    pub msg_address: MsgAddress,
+    pub address: InnerTonAddress,
     pub format: TonFormat,
 }
 
@@ -33,22 +33,16 @@ impl Address for TonAddress {
         format: &Self::Format,
     ) -> Result<Self, AddressError> {
         let workchain_id = 0;
-        let address = MsgAddress::derive(
+        let address = TonWallet::derive_address(
             workchain_id,
-            StateInit {
-                code: Some(ton_contracts::wallet::v4r2::V4R2::code()),
-                data: Some(ton_contracts::wallet::v4r2::V4R2::init_data(
-                    DEFAULT_WALLET_ID,
-                    public_key.0.to_bytes(),
-                )),
-                ..Default::default()
-            }
-            .normalize()
-            .map_err(|error| AddressError::Message(format!("{:?}", error)))?,
+            WalletVersion::V4R2,
+            public_key.0.as_bytes(),
+            DEFAULT_WALLET_ID,
         )
         .map_err(|error| AddressError::Message(format!("{:?}", error)))?;
+
         Ok(Self {
-            msg_address: address,
+            address,
             format: format.clone(),
         })
     }
@@ -57,7 +51,7 @@ impl Address for TonAddress {
         if address.len() != 48 {
             return false;
         }
-        MsgAddress::from_str(address).is_ok()
+        InnerTonAddress::from_str(address).is_ok()
     }
 }
 
@@ -69,11 +63,11 @@ impl FromStr for TonAddress {
             return Err(AddressError::InvalidCharacterLength(addr.len()));
         }
 
-        let address = MsgAddress::from_str(addr).map_err(|error| {
+        let address = InnerTonAddress::from_str(addr).map_err(|error| {
             AddressError::Message(format!("Failed to parse MsgAddress: {:?}", error))
         })?;
         Ok(Self {
-            msg_address: address,
+            address,
             format: TonFormat::default(),
         })
     }
@@ -83,16 +77,16 @@ impl Display for TonAddress {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self.format {
             TonFormat::MainnetBounceable => {
-                write!(f, "{}", self.msg_address.to_base64_std_flags(false, false))
+                write!(f, "{}", self.address.to_base64_std_flags(false, false))
             }
             TonFormat::TestnetBounceable => {
-                write!(f, "{}", self.msg_address.to_base64_std_flags(false, true))
+                write!(f, "{}", self.address.to_base64_std_flags(false, true))
             }
             TonFormat::MainnetNonBounceable => {
-                write!(f, "{}", self.msg_address.to_base64_std_flags(true, false))
+                write!(f, "{}", self.address.to_base64_std_flags(true, false))
             }
             TonFormat::TestnetNonBounceable => {
-                write!(f, "{}", self.msg_address.to_base64_std_flags(true, true))
+                write!(f, "{}", self.address.to_base64_std_flags(true, true))
             }
         }
     }
@@ -124,10 +118,10 @@ mod tests {
             100, 149, 58, 124, 175, 1, 196, 117, 105, 223, 109, 148, 149,
         ];
 
-        assert_eq!(addr_bytes, a_addr.msg_address.address);
-        assert_eq!(addr_bytes, b_addr.msg_address.address);
-        assert_eq!(addr_bytes, c_addr.msg_address.address);
-        assert_eq!(addr_bytes, d_addr.msg_address.address);
+        assert_eq!(addr_bytes, a_addr.address.hash_part);
+        assert_eq!(addr_bytes, b_addr.address.hash_part);
+        assert_eq!(addr_bytes, c_addr.address.hash_part);
+        assert_eq!(addr_bytes, d_addr.address.hash_part);
     }
 
     #[test]
@@ -139,6 +133,7 @@ mod tests {
 
         let secret_key = ed25519_dalek::SecretKey::from_bytes(&secret_bytes).unwrap();
         let public_key: TonPublicKey = TonPublicKey::from_secret_key(&secret_key);
+        dbg!(&public_key.0.as_bytes());
 
         let a_addr = public_key
             .to_address(&TonFormat::MainnetBounceable)

@@ -5,11 +5,13 @@ edition = "2021"
 
 [dependencies]
 anychain-core = { version = "0.1.6" }
-ton-contracts = "0.3.2"
-tlb-ton = "0.3.2"
+#ton-contracts = "0.3.2"
+#tlb-ton = "0.3.2"
+tonlib-core = { git = "https://github.com/loki-cmu/tonlib-rs.git", branch = "main" }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 nacl = "0.5.3"
 ed25519-dalek = "=1.0.1"
 base64 = "0.22.1"
 crc16 = "0.4.0"
 hex = "0.4.3"
+
