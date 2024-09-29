@@ -11,7 +11,7 @@ use tonlib_core::wallet::TonWallet;
 use tonlib_core::wallet::WalletVersion;
 use tonlib_core::TonAddress;
 
-use toncenter::client::{ApiClientV2, Network, ApiKey};
+use toncenter::client::{ApiClientV2, ApiKey, Network};
 
 #[tokio::main]
 async fn main() {
@@ -19,7 +19,22 @@ async fn main() {
     let api_client = ApiClientV2::new(Network::Testnet, Some(ApiKey::Header(api_key)));
 
     // let api_client = ApiClientV2::new(Network::Testnet, None);
-    // let address = "0QA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlXe4";
+    let address = "0QA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlXe4";
+
+    // SmcRunResult { gas_used: 769, stack: [("num", "0x11")], exit_code: 0, extra: Some("1727601265.8202894:5:0.2830781684144622") }
+    match api_client.run_get_method(address, "seqno", &[]).await {
+        Ok(info) => {
+            if info.exit_code == 0 {
+                let (_type, hex_value) = info.stack.first().unwrap();
+                let seqno: u64 =
+                    u64::from_str_radix(hex_value.trim_start_matches("0x"), 16).unwrap();
+                println!("{}", seqno);
+            }
+        }
+        Err(e) => {
+            eprintln!("{:?}", e);
+        }
+    }
 
     // match api_client.get_address_information(address).await {
     //     Ok(info) => println!("Address info: {:#?}", info),
@@ -28,7 +43,7 @@ async fn main() {
     //     }
     // }
 
-    let boc_str = build_simple_transfer_boc();
+    // let boc_str = build_simple_transfer_boc();
 
     // match api_client.send_boc(&boc_str).await {
     //     Ok(response) => println!("Response: {:#?}", response),
@@ -42,7 +57,10 @@ fn build_simple_transfer_boc() -> String {
     let mnemoic_str = "private two helmet history gravity disease impact slice because silent crunch mammal divert kind faint ketchup holiday soup drill during wash mandate fade mention";
     let mnemonic = Mnemonic::from_str(mnemoic_str, &None).unwrap();
     let key_pair: KeyPair = mnemonic.to_key_pair().unwrap();
-    println!("sk = {:?}\npk = {:?}", key_pair.secret_key, key_pair.public_key);
+    println!(
+        "sk = {:?}\npk = {:?}",
+        key_pair.secret_key, key_pair.public_key
+    );
     // TODO: increase seqno each time
     let seqno = 16;
     let wallet = TonWallet::derive_default(WalletVersion::V4R2, &key_pair).unwrap();
@@ -57,13 +75,9 @@ fn build_simple_transfer_boc() -> String {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_secs() as u32;
-    
+
     let body = wallet
-        .create_external_body(
-            now + 600,
-            seqno,
-            vec![Arc::new(transfer)],
-        )
+        .create_external_body(now + 600, seqno, vec![Arc::new(transfer)])
         .unwrap();
     let signed = wallet.sign_external_body(&body).unwrap();
     let wrapped = wallet.wrap_signed_body(signed, false).unwrap();
