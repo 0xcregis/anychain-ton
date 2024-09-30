@@ -118,6 +118,8 @@ impl Transaction for TonTransaction {
                     let code = WALLET_V4R2_CODE.single_root().unwrap();
                     let state_init = StateInitBuilder::new(code, &initial_data).build().unwrap();
                     let _ = builder.store_child(state_init);
+                } else {
+                    let _ = builder.store_bit(false); // state init absent
                 }
                 /************************************************************************************/
                 
