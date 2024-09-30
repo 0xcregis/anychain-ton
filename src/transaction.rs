@@ -21,7 +21,7 @@ pub struct TonTransactionParameters {
     pub amount: u64,
     pub seqno: u32,
     pub now: u32,
-    pub public_key: Option<[u8; 32]>,
+    pub public_key: [u8; 32],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -105,24 +105,19 @@ impl Transaction for TonTransaction {
                 let _ = builder.store_coins(&BigUint::ZERO);
                 
                 /******************initialize account state for the first transaction*****************/
-                match self.params.public_key {
-                    Some(public_key) => {
-                        let _ = builder.store_bit(true); // state init present
-                        let _ = builder.store_bit(true); // state init in ref
-                        let initial_data = WalletDataV4 {
-                            seqno: 0,
-                            wallet_id: DEFAULT_WALLET_ID,
-                            public_key,
-                        };
-                        let initial_data: Cell = initial_data.try_into().unwrap();
-                        let initial_data = Arc::new(initial_data);
-                        let code = WALLET_V4R2_CODE.single_root().unwrap();
-                        let state_init = StateInitBuilder::new(code, &initial_data).build().unwrap();
-                        let _ = builder.store_child(state_init);
-                    }
-                    None => {
-                        let _ = builder.store_bit(false); // state init absent
-                    }
+                if self.params.seqno == 0 {
+                    let _ = builder.store_bit(true); // state init present
+                    let _ = builder.store_bit(true); // state init in ref
+                    let initial_data = WalletDataV4 {
+                        seqno: 0,
+                        wallet_id: DEFAULT_WALLET_ID,
+                        public_key: self.params.public_key,
+                    };
+                    let initial_data: Cell = initial_data.try_into().unwrap();
+                    let initial_data = Arc::new(initial_data);
+                    let code = WALLET_V4R2_CODE.single_root().unwrap();
+                    let state_init = StateInitBuilder::new(code, &initial_data).build().unwrap();
+                    let _ = builder.store_child(state_init);
                 }
                 /************************************************************************************/
                 
@@ -174,7 +169,7 @@ impl Transaction for TonTransaction {
 //         amount: 1000000,
 //         seqno: 1,
 //         now: 1727590026 + 600,
-//         public_key: Some(pk),
+//         public_key: pk,
 //     };
 
 //     let mut tx = TonTransaction::new(&params).unwrap();
