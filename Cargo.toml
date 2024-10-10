@@ -23,6 +23,7 @@ rand = "0.8.5"
 rand_core = "0.6.4"
 toncenter = "0.1.0"
 tokio = "1"
+tonlib = "0.17.6"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
