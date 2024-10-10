@@ -4,18 +4,13 @@ use std::{fmt, str::FromStr};
 
 use num_bigint::BigUint;
 use std::sync::Arc;
-use tonlib_core::types::TonAddress as InnerTonAddress;
-use tonlib_core::cell::{BagOfCells, Cell, CellBuilder, StateInitBuilder};
-use tonlib_core::message::TransferMessage;
-use tonlib_core::message::{CommonMsgInfo, TonMessage};
-use tonlib_core::wallet::{WALLET_V4R2_CODE, WalletDataV4};
-
-
-const DEFAULT_WALLET_ID: i32 = 0x29a9a317;
+use tonlib::message::{JettonTransferMessage, TransferMessage};
+use tonlib::cell::{BagOfCells, Cell, CellBuilder, StateInitBuilder, EMPTY_ARC_CELL};
+use tonlib::wallet::{WALLET_V4R2_CODE, WalletDataV4, DEFAULT_WALLET_ID};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TonTransactionParameters {
-    pub token: Option<TonAddress>,
+    pub jetton_wallet: Option<TonAddress>,
     pub from: TonAddress,
     pub to: TonAddress,
     pub amount: u64,
@@ -28,6 +23,10 @@ pub struct TonTransactionParameters {
 pub struct TonTransaction {
     pub params: TonTransactionParameters,
     pub signature: Option<Vec<u8>>,
+}
+
+fn address_convert(address: &TonAddress) -> tonlib::address::TonAddress {
+    tonlib::address::TonAddress::from_str(&address.address.to_string()).unwrap()
 }
 
 impl FromStr for TonTransaction {
@@ -74,11 +73,37 @@ impl Transaction for TonTransaction {
     }
 
     fn to_bytes(&self) -> Result<Vec<u8>, TransactionError> {
-        let to = &self.params.to.address;
-        let amount = BigUint::from(self.params.amount);
-        let transfer = CommonMsgInfo::new_default_internal(&to, &amount);
-        let transfer = TransferMessage::new(transfer).build().unwrap();
-        let transfer = Arc::new(transfer);
+        let transfer = match &self.params.jetton_wallet {
+            Some(jetton_wallet) => {
+                let jetton_wallet = address_convert(&jetton_wallet);
+                let to = address_convert(&self.params.to);
+                let amount = BigUint::from(self.params.amount);
+
+                let jetton_transfer= JettonTransferMessage {
+                    query_id: 1,
+                    amount,
+                    destination: to,
+                    response_destination: tonlib::address::TonAddress::NULL,
+                    custom_payload: None,
+                    forward_ton_amount: BigUint::from(1u64),
+                    forward_payload: Arc::new(Cell::default()),
+                }.build().unwrap();
+
+                let fee = BigUint::from(100000000u64);
+
+                let transfer = TransferMessage::new(&jetton_wallet, &fee)
+                    .with_data(jetton_transfer)
+                    .build()
+                    .unwrap();
+                Arc::new(transfer)
+            }
+            None => {
+                let to = address_convert(&self.params.to);
+                let amount = BigUint::from(self.params.amount);
+                let transfer = TransferMessage::new(&to, &amount).build().unwrap();
+                Arc::new(transfer)
+            }
+        };
 
         let mut builder = CellBuilder::new();
         
@@ -93,6 +118,7 @@ impl Transaction for TonTransaction {
         
         match &self.signature {
             Some(sig) => {
+                let from = address_convert(&self.params.from);
                 let mut builder = CellBuilder::new();
                 let _ = builder.store_slice(sig);
                 let _ = builder.store_cell(&cell);
@@ -100,8 +126,8 @@ impl Transaction for TonTransaction {
 
                 let mut builder = CellBuilder::new();
                 let _ = builder.store_u8(2, 2);
-                let _ = builder.store_address(&InnerTonAddress::NULL);
-                let _ = builder.store_address(&self.params.from.address);
+                let _ = builder.store_address(&tonlib::address::TonAddress::NULL);
+                let _ = builder.store_address(&from);
                 let _ = builder.store_coins(&BigUint::ZERO);
                 
                 /******************initialize account state for the first transaction*****************/
@@ -149,62 +175,65 @@ impl Transaction for TonTransaction {
 }
 
 
-// use base64::{engine::general_purpose, Engine as _};
-// use toncenter::client::{ApiClientV2, Network, ApiKey};
-// use tokio::runtime::Runtime;
-// use std::time::SystemTime;
+use base64::{engine::general_purpose, Engine as _};
+use toncenter::client::{ApiClientV2, Network, ApiKey};
+use tokio::runtime::Runtime;
+use std::time::SystemTime;
 
-// #[test]
-// fn test_tx_gen() {
-//     let from = "0QD3efSsNH7xNTSMgqPuyKWaDvJZ9I49DarhD9nPOU4aS2jF";
-//     let to = "0QA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlXe4";
+#[test]
+fn test_tx_gen() {
+    let jetton_wallet = "kQBxhr6kc3yKfB3i91V2fFLP8HpwxwBt_Gw9lppe9icJkuWY";
+    
+    let from = "0QD3efSsNH7xNTSMgqPuyKWaDvJZ9I49DarhD9nPOU4aS2jF";
+    let to = "0QA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlXe4";
 
-//     let from = TonAddress::from_str(from).unwrap();
-//     let to = TonAddress::from_str(to).unwrap();
+    let jetton_wallet = TonAddress::from_str(jetton_wallet).unwrap();
+    let from = TonAddress::from_str(from).unwrap();
+    let to = TonAddress::from_str(to).unwrap();
 
-//     let pk = [123, 119, 75, 83, 182, 162, 80, 116, 206, 83, 201, 219, 245, 142, 86, 18, 73, 192, 174, 111, 233, 125, 71, 235, 132, 32, 24, 20, 221, 35, 233, 242];
+    let pk = [123, 119, 75, 83, 182, 162, 80, 116, 206, 83, 201, 219, 245, 142, 86, 18, 73, 192, 174, 111, 233, 125, 71, 235, 132, 32, 24, 20, 221, 35, 233, 242];
 
-//     let params = TonTransactionParameters {
-//         token: None,
-//         from: from.clone(),
-//         to: to.clone(),
-//         amount: 1000000,
-//         seqno: 1,
-//         now: 1727590026 + 600,
-//         public_key: pk,
-//     };
+    let params = TonTransactionParameters {
+        jetton_wallet: Some(jetton_wallet),
+        from: from.clone(),
+        to: to.clone(),
+        amount: 10000000000,
+        seqno: 12,
+        now: 1728529359,
+        public_key: pk,
+    };
 
-//     let mut tx = TonTransaction::new(&params).unwrap();
+    let mut tx = TonTransaction::new(&params).unwrap();
 
-//     let msg = tx.to_bytes().unwrap();
-//     let msg = hex::encode(msg);
+    let msg = tx.to_bytes().unwrap();
+    let msg = hex::encode(msg);
 
-//     println!("msg: {}", msg);
+    println!("msg: {}", msg);
 
-//     let sig = "58bfa034e6e16f2cce93b3fa8784ce5a8548907070ae02839f7ce196528ac61a62e80db2f6a7f5c1a4a96e1d7e6687088c7ad0a7a56f80a1f4d804a966f7dc06";
-//     let sig = hex::decode(sig).unwrap();
+    let sig = "d7836dc4cc6d1405e861c9b1359047d87300b7fcdc83b06f02613ca0be691ef8bd6bf1e67642a8cd4ddf34a1d822558fbaee1196d3755c5756fc094837b13609";
+    let sig = hex::decode(sig).unwrap();
 
-//     let tx = tx.sign(sig, 0).unwrap();
-//     let tx = general_purpose::STANDARD.encode(&tx);
-//     println!("tx: {}", tx);
+    let tx = tx.sign(sig, 0).unwrap();
+    let tx = general_purpose::STANDARD.encode(&tx);
+    println!("tx: {}", tx);
 
-//     let api_key = "a8b61ced4be11488cb6e82d65b93e3d4a29d20af406aed9688b9e0077e2dc742".to_string();
-//     let api_client = ApiClientV2::new(Network::Testnet, Some(ApiKey::Header(api_key)));
+    // let api_key = "a8b61ced4be11488cb6e82d65b93e3d4a29d20af406aed9688b9e0077e2dc742".to_string();
+    // let api_client = ApiClientV2::new(Network::Testnet, Some(ApiKey::Header(api_key)));
 
-//     Runtime::new().unwrap().block_on(async {
-//         let response = api_client.send_boc(&tx).await;
-//         println!("Response: {:#?}", response);
-//     });
-// }
+    // Runtime::new().unwrap().block_on(async {
+    //     let response = api_client.send_boc(&tx).await;
+    //     println!("Response: {:#?}", response);
+    // });
+}
 
-// fn now() -> u32 {
-//     SystemTime::now()
-//     .duration_since(SystemTime::UNIX_EPOCH)
-//     .unwrap()
-//     .as_secs() as u32
-// }
+fn now() -> u32 {
+    SystemTime::now()
+    .duration_since(SystemTime::UNIX_EPOCH)
+    .unwrap()
+    .as_secs() as u32
+}
 
-// #[test]
-// fn test_now() {
-//     println!("now: {}", now());
-// }
+#[test]
+fn test_now() {
+    println!("now: {}", now());
+}
