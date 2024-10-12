@@ -4,9 +4,12 @@ use std::{fmt, str::FromStr};
 
 use num_bigint::BigUint;
 use std::sync::Arc;
-use tonlib_core_anychain::cell::{BagOfCells, Cell, CellBuilder, StateInitBuilder, EMPTY_ARC_CELL};
-use tonlib_core_anychain::message::{JettonTransferMessage, TonMessage, TransferMessage};
-use tonlib_core_anychain::wallet::{WalletDataV4, DEFAULT_WALLET_ID, WALLET_V4R2_CODE};
+use tonlib_core_anychain::{
+    TonAddress as InnerAddress,
+    message::{CommonMsgInfo, JettonTransferMessage, TonMessage, TransferMessage},
+    cell::{BagOfCells, Cell, CellBuilder, StateInitBuilder, EitherCellLayout},
+    wallet::{WALLET_V4R2_CODE, WalletDataV4, DEFAULT_WALLET_ID},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TonTransactionParameters {
@@ -23,10 +26,6 @@ pub struct TonTransactionParameters {
 pub struct TonTransaction {
     pub params: TonTransactionParameters,
     pub signature: Option<Vec<u8>>,
-}
-
-fn address_convert(address: &TonAddress) -> tonlib_core_anychain::TonAddress {
-    tonlib_core_anychain::TonAddress::from_str(&address.address.to_string()).unwrap()
 }
 
 impl FromStr for TonTransaction {
@@ -73,56 +72,56 @@ impl Transaction for TonTransaction {
     }
 
     fn to_bytes(&self) -> Result<Vec<u8>, TransactionError> {
-        /*
         let transfer = match &self.params.jetton_wallet {
             Some(jetton_wallet) => {
-                let jetton_wallet = address_convert(&jetton_wallet);
-                let to = address_convert(&self.params.to);
+                let jetton_wallet = &jetton_wallet.address;
+                let to = &self.params.to.address;
                 let amount = BigUint::from(self.params.amount);
 
-                let jetton_transfer = JettonTransferMessage {
+                let jetton_transfer= Arc::new(JettonTransferMessage {
                     query_id: 1,
                     amount,
-                    destination: to,
-                    response_destination: tonlib_core_anychain::TonAddress::NULL,
+                    destination: to.clone(),
+                    response_destination: InnerAddress::NULL,
                     custom_payload: None,
                     forward_ton_amount: BigUint::from(1u64),
                     forward_payload: Arc::new(Cell::default()),
-                    forward_payload_layout: tonlib_core_anychain::cell::EitherCellLayout::Native,
-                }
-                .build()
-                .unwrap();
+                    forward_payload_layout: EitherCellLayout::Native,
+                }.build().unwrap());
 
                 let fee = BigUint::from(100000000u64);
 
-                let transfer = TransferMessage::new(&jetton_wallet, &fee)
-                    .with_data(jetton_transfer)
-                    .build()
-                    .unwrap();
+                let transfer = TransferMessage::new(
+                    CommonMsgInfo::new_default_internal(&jetton_wallet, &fee)
+                ).with_data(jetton_transfer).build().unwrap();
+                
                 Arc::new(transfer)
             }
             None => {
-                let to = address_convert(&self.params.to);
+                let to = &self.params.to.address;
                 let amount = BigUint::from(self.params.amount);
-                let transfer = TransferMessage::new(&to, &amount).build().unwrap();
+                let transfer = TransferMessage::new(
+                    CommonMsgInfo::new_default_internal(to, &amount)
+                ).build().unwrap();
+
                 Arc::new(transfer)
             }
         };
 
         let mut builder = CellBuilder::new();
-
+        
         let _ = builder.store_i32(32, DEFAULT_WALLET_ID);
         let _ = builder.store_u32(32, self.params.now + 600);
         let _ = builder.store_u32(32, self.params.seqno);
         let _ = builder.store_u8(8, 0);
         let _ = builder.store_u8(8, 3); // send_mode
         let _ = builder.store_reference(&transfer);
-
+        
         let cell = builder.build().unwrap();
-
+        
         match &self.signature {
             Some(sig) => {
-                let from = address_convert(&self.params.from);
+                let from = &self.params.from.address;
                 let mut builder = CellBuilder::new();
                 let _ = builder.store_slice(sig);
                 let _ = builder.store_cell(&cell);
@@ -130,10 +129,10 @@ impl Transaction for TonTransaction {
 
                 let mut builder = CellBuilder::new();
                 let _ = builder.store_u8(2, 2);
-                let _ = builder.store_address(&tonlib_core_anychain::TonAddress::NULL);
+                let _ = builder.store_address(&InnerAddress::NULL);
                 let _ = builder.store_address(&from);
                 let _ = builder.store_coins(&BigUint::ZERO);
-
+                
                 /******************initialize account state for the first transaction*****************/
                 if self.params.seqno == 0 {
                     let _ = builder.store_bit(true); // state init present
@@ -152,14 +151,14 @@ impl Transaction for TonTransaction {
                     let _ = builder.store_bit(false); // state init absent
                 }
                 /************************************************************************************/
-
+                
                 let _ = builder.store_bit(true);
                 let _ = builder.store_child(cell);
                 let cell = builder.build().unwrap();
 
                 let boc = BagOfCells::from_root(cell);
                 let stream = boc.serialize(true).unwrap();
-
+                
                 Ok(stream)
             }
             None => {
@@ -167,8 +166,6 @@ impl Transaction for TonTransaction {
                 Ok(stream)
             }
         }
-         */
-        todo!()
     }
 
     fn from_bytes(_tx: &[u8]) -> Result<Self, TransactionError> {
@@ -180,74 +177,66 @@ impl Transaction for TonTransaction {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{TonTransaction, TonTransactionParameters, Transaction};
-    use crate::TonAddress;
-    use base64::{engine::general_purpose, Engine as _};
-    use std::time::SystemTime;
-    use std::{fmt, str::FromStr};
-    use tokio::runtime::Runtime;
-    use toncenter::client::{ApiClientV2, ApiKey, Network};
 
-    #[test]
-    fn test_tx_gen() {
-        let jetton_wallet = "kQBxhr6kc3yKfB3i91V2fFLP8HpwxwBt_Gw9lppe9icJkuWY";
+use base64::{engine::general_purpose, Engine as _};
+use toncenter::client::{ApiClientV2, Network, ApiKey};
+use tokio::runtime::Runtime;
+use std::time::SystemTime;
 
-        let from = "0QD3efSsNH7xNTSMgqPuyKWaDvJZ9I49DarhD9nPOU4aS2jF";
-        let to = "0QA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlXe4";
+#[test]
+fn test_tx_gen() {
+    let jetton_wallet = "kQBxhr6kc3yKfB3i91V2fFLP8HpwxwBt_Gw9lppe9icJkuWY";
+    
+    let from = "0QD3efSsNH7xNTSMgqPuyKWaDvJZ9I49DarhD9nPOU4aS2jF";
+    let to = "0QA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlXe4";
 
-        let jetton_wallet = TonAddress::from_str(jetton_wallet).unwrap();
-        let from = TonAddress::from_str(from).unwrap();
-        let to = TonAddress::from_str(to).unwrap();
+    let jetton_wallet = TonAddress::from_str(jetton_wallet).unwrap();
+    let from = TonAddress::from_str(from).unwrap();
+    let to = TonAddress::from_str(to).unwrap();
 
-        let pk = [
-            123, 119, 75, 83, 182, 162, 80, 116, 206, 83, 201, 219, 245, 142, 86, 18, 73, 192, 174,
-            111, 233, 125, 71, 235, 132, 32, 24, 20, 221, 35, 233, 242,
-        ];
+    let pk = [123, 119, 75, 83, 182, 162, 80, 116, 206, 83, 201, 219, 245, 142, 86, 18, 73, 192, 174, 111, 233, 125, 71, 235, 132, 32, 24, 20, 221, 35, 233, 242];
 
-        let params = TonTransactionParameters {
-            jetton_wallet: Some(jetton_wallet),
-            from: from.clone(),
-            to: to.clone(),
-            amount: 10000000000,
-            seqno: 12,
-            now: 1728529359,
-            public_key: pk,
-        };
+    let params = TonTransactionParameters {
+        jetton_wallet: Some(jetton_wallet),
+        from: from.clone(),
+        to: to.clone(),
+        amount: 10000000000,
+        seqno: 14,
+        now: 1728698931,
+        public_key: pk,
+    };
 
-        let mut tx = TonTransaction::new(&params).unwrap();
+    let mut tx = TonTransaction::new(&params).unwrap();
 
-        let msg = tx.to_bytes().unwrap();
-        let msg = hex::encode(msg);
+    let msg = tx.to_bytes().unwrap();
+    let msg = hex::encode(msg);
 
-        println!("msg: {}", msg);
+    println!("msg: {}", msg);
 
-        let sig = "d7836dc4cc6d1405e861c9b1359047d87300b7fcdc83b06f02613ca0be691ef8bd6bf1e67642a8cd4ddf34a1d822558fbaee1196d3755c5756fc094837b13609";
-        let sig = hex::decode(sig).unwrap();
+    let sig = "fe260362985c26f876d26fb9bcfdf5b2ede940c30001b7931ce4535125b90e35f509c05947b9a8de224dfb9e1157799c95e5bcd702d4ca8fa3a507679471a001";
+    let sig = hex::decode(sig).unwrap();
 
-        let tx = tx.sign(sig, 0).unwrap();
-        let tx = general_purpose::STANDARD.encode(&tx);
-        println!("tx: {}", tx);
+    let tx = tx.sign(sig, 0).unwrap();
+    let tx = general_purpose::STANDARD.encode(&tx);
+    println!("tx: {}", tx);
 
-        // let api_key = "a8b61ced4be11488cb6e82d65b93e3d4a29d20af406aed9688b9e0077e2dc742".to_string();
-        // let api_client = ApiClientV2::new(Network::Testnet, Some(ApiKey::Header(api_key)));
+    // let api_key = "a8b61ced4be11488cb6e82d65b93e3d4a29d20af406aed9688b9e0077e2dc742".to_string();
+    // let api_client = ApiClientV2::new(Network::Testnet, Some(ApiKey::Header(api_key)));
 
-        // Runtime::new().unwrap().block_on(async {
-        //     let response = api_client.send_boc(&tx).await;
-        //     println!("Response: {:#?}", response);
-        // });
-    }
+    // Runtime::new().unwrap().block_on(async {
+    //     let response = api_client.send_boc(&tx).await;
+    //     println!("Response: {:#?}", response);
+    // });
+}
 
-    fn now() -> u32 {
-        SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as u32
-    }
+fn now() -> u32 {
+    SystemTime::now()
+    .duration_since(SystemTime::UNIX_EPOCH)
+    .unwrap()
+    .as_secs() as u32
+}
 
-    #[test]
-    fn test_now() {
-        println!("now: {}", now());
-    }
+#[test]
+fn test_now() {
+    println!("now: {}", now());
 }
