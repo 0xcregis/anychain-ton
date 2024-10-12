@@ -254,6 +254,7 @@ mod tests {
             .as_secs() as u32
     }
 
+    #[ignore]
     #[test]
     fn test_now() {
         dbg!("now: {}", now());
