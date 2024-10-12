@@ -1,17 +1,17 @@
 use base64::engine::{general_purpose, Engine};
 use num_bigint::BigUint;
-use std::sync::Arc;
-use std::time::SystemTime;
-use tonlib_core_anychain::cell::{BagOfCells, CellBuilder};
-use tonlib_core_anychain::message::TransferMessage;
-use tonlib_core_anychain::message::{CommonMsgInfo, TonMessage};
-use tonlib_core_anychain::mnemonic::KeyPair;
-use tonlib_core_anychain::mnemonic::Mnemonic;
-use tonlib_core_anychain::wallet::TonWallet;
-use tonlib_core_anychain::wallet::WalletVersion;
-use tonlib_core_anychain::TonAddress;
-
+use std::{sync::Arc, time::SystemTime};
 use toncenter::client::{ApiClientV2, ApiKey, Network};
+use tonlib_core_anychain::{
+    cell::BagOfCells,
+    message::TransferMessage,
+    message::{CommonMsgInfo, TonMessage},
+    mnemonic::KeyPair,
+    mnemonic::Mnemonic,
+    wallet::TonWallet,
+    wallet::WalletVersion,
+    TonAddress,
+};
 
 #[tokio::main]
 async fn main() {
@@ -53,6 +53,7 @@ async fn main() {
     // }
 }
 
+#[allow(dead_code)]
 fn build_simple_transfer_boc() -> String {
     let mnemoic_str = "private two helmet history gravity disease impact slice because silent crunch mammal divert kind faint ketchup holiday soup drill during wash mandate fade mention";
     let mnemonic = Mnemonic::from_str(mnemoic_str, &None).unwrap();

@@ -9,7 +9,7 @@ use {
     tonlib_core_anychain::wallet::{TonWallet, WalletVersion, DEFAULT_WALLET_ID},
 };
 
-/// Represents a Solana address
+/// Represents a Ton address
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TonAddress {
     pub address: InnerTonAddress,
@@ -94,12 +94,12 @@ impl Display for TonAddress {
 
 #[cfg(test)]
 mod tests {
-    use crate::address::TonAddress;
-    use crate::format::TonFormat;
-    use crate::public_key::TonPublicKey;
-    use anychain_core::public_key::PublicKey;
-    use core::str::FromStr;
-    use ed25519_dalek::PUBLIC_KEY_LENGTH;
+    use {
+        crate::{address::TonAddress, format::TonFormat, public_key::TonPublicKey},
+        anychain_core::{public_key::PublicKey, Address},
+        core::str::FromStr,
+        ed25519_dalek::PUBLIC_KEY_LENGTH,
+    };
 
     #[test]
     fn test_address_from_str() {
@@ -169,66 +169,97 @@ mod tests {
             "0QA6W2spRJ6D+AUf6PHTfKJCib63ZJU6fK8BxHVp322UlXe4"
         );
     }
-}
 
-#[test]
-fn test_address_gen() {
-    let sk = [
-        163, 27, 236, 35, 251, 127, 152, 172, 241, 108, 136, 153, 30, 28, 111, 7, 8, 203, 61, 254,
-        254, 28, 22, 140, 180, 158, 52, 246, 207, 241, 80, 203,
-    ];
-    let sk = ed25519_dalek::SecretKey::from_bytes(&sk).unwrap();
-    let pk = ed25519_dalek::PublicKey::from(&sk);
+    #[test]
+    fn test_address_gen() {
+        let sk = [
+            163, 27, 236, 35, 251, 127, 152, 172, 241, 108, 136, 153, 30, 28, 111, 7, 8, 203, 61,
+            254, 254, 28, 22, 140, 180, 158, 52, 246, 207, 241, 80, 203,
+        ];
+        let sk = ed25519_dalek::SecretKey::from_bytes(&sk).unwrap();
+        let pk = ed25519_dalek::PublicKey::from(&sk);
 
-    let xsk = ed25519_dalek::ExpandedSecretKey::from(&sk);
-    let msg = "e1e0c6e409ed279f8267a96c63c01d24bf5dc698d882ff1dce28c95acbeb8cb7";
-    let msg = hex::decode(msg).unwrap();
-    let sig = xsk.sign(&msg, &pk);
-    let sig = sig.to_bytes();
-    let sig = hex::encode(sig);
-    println!("sig: {}", sig);
+        let xsk = ed25519_dalek::ExpandedSecretKey::from(&sk);
+        let msg = "e1e0c6e409ed279f8267a96c63c01d24bf5dc698d882ff1dce28c95acbeb8cb7";
+        let msg = hex::decode(msg).unwrap();
+        let sig = xsk.sign(&msg, &pk);
+        let sig = sig.to_bytes();
+        let sig = hex::encode(sig);
 
-    let pk = TonPublicKey(pk);
-    let addr = TonAddress::from_public_key(&pk, &TonFormat::TestnetNonBounceable).unwrap();
+        assert_eq!("4091cf5cfa178feba96dfacafd3b015f21ee8ea43fc65a635ae2017c9121ccaca8cce4680a24c23dca37b4dd4118524eb2209f2f2636e4210d4495f840fbb90e", sig);
 
-    println!("{}", addr);
-}
+        let pk = TonPublicKey(pk);
+        let addr = TonAddress::from_public_key(&pk, &TonFormat::TestnetNonBounceable).unwrap();
 
-#[test]
-fn test_address_gen1() {
-    let sk = [
-        123, 119, 75, 83, 182, 162, 80, 116, 206, 83, 201, 219, 245, 142, 86, 18, 73, 192, 174,
-        111, 233, 125, 71, 235, 132, 32, 24, 20, 221, 35, 233, 242,
-    ];
-    let sk = ed25519_dalek::SecretKey::from_bytes(&sk).unwrap();
-    let pk = ed25519_dalek::PublicKey::from(&sk);
-    let pk_bytes = pk.to_bytes();
-    println!("pk: {:?}", pk_bytes);
+        assert_eq!(
+            TonAddress {
+                address: "EQA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlZH3"
+                    .parse()
+                    .unwrap(),
+                format: TonFormat::TestnetNonBounceable,
+            },
+            addr
+        );
+    }
 
-    let xsk = ed25519_dalek::ExpandedSecretKey::from(&sk);
-    let msg = "4eb4e0616d6905c149c11f55f9efb1f63e02037e2c8c89f91e3f197ac46b47b2";
-    let msg = hex::decode(msg).unwrap();
-    let sig = xsk.sign(&msg, &pk);
-    let sig = sig.to_bytes();
-    let sig = hex::encode(sig);
-    println!("sig: {}", sig);
+    #[test]
+    fn test_address_gen1() {
+        let sk = [
+            123, 119, 75, 83, 182, 162, 80, 116, 206, 83, 201, 219, 245, 142, 86, 18, 73, 192, 174,
+            111, 233, 125, 71, 235, 132, 32, 24, 20, 221, 35, 233, 242,
+        ];
+        let sk = ed25519_dalek::SecretKey::from_bytes(&sk).unwrap();
+        let pk = ed25519_dalek::PublicKey::from(&sk);
+        let pk_bytes = pk.to_bytes();
+        assert_eq!(
+            [
+                209, 9, 210, 168, 165, 17, 12, 6, 90, 130, 114, 95, 216, 134, 24, 71, 88, 234, 123,
+                15, 99, 213, 149, 212, 147, 53, 129, 236, 50, 236, 224, 41,
+            ],
+            pk_bytes
+        );
 
-    let pk = TonPublicKey(pk);
-    let addr = TonAddress::from_public_key(&pk, &TonFormat::TestnetNonBounceable).unwrap();
+        let xsk = ed25519_dalek::ExpandedSecretKey::from(&sk);
+        let msg = "4eb4e0616d6905c149c11f55f9efb1f63e02037e2c8c89f91e3f197ac46b47b2";
+        let msg = hex::decode(msg).unwrap();
+        let sig = xsk.sign(&msg, &pk);
+        let sig = sig.to_bytes();
+        let sig = hex::encode(sig);
+        assert_eq!("8d08fb78c7b68d9f5a36f958ebd8be6978e932bcba958f018dda0a9019f343061b43db6e621d4a0777742427bb2254f83d992aadb334b510aa430233e73fb705", sig);
 
-    println!("{}", addr);
-}
+        let pk = TonPublicKey(pk);
+        let addr = TonAddress::from_public_key(&pk, &TonFormat::TestnetNonBounceable).unwrap();
 
-#[test]
-fn test_address_gen2() {
-    let pk = [
-        123, 119, 75, 83, 182, 162, 80, 116, 206, 83, 201, 219, 245, 142, 86, 18, 73, 192, 174,
-        111, 233, 125, 71, 235, 132, 32, 24, 20, 221, 35, 233, 242,
-    ];
-    let pk = ed25519_dalek::PublicKey::from_bytes(&pk).unwrap();
+        assert_eq!(
+            TonAddress {
+                address: "EQDPBpF3yMmNNpOJ7gFYkUb3XqJTMmSbLPeWbE9YGDzEXdQp"
+                    .parse()
+                    .unwrap(),
+                format: TonFormat::TestnetNonBounceable,
+            },
+            addr
+        );
+    }
 
-    let pk = TonPublicKey(pk);
-    let addr = TonAddress::from_public_key(&pk, &TonFormat::TestnetNonBounceable).unwrap();
+    #[test]
+    fn test_address_gen2() {
+        let pk = [
+            123, 119, 75, 83, 182, 162, 80, 116, 206, 83, 201, 219, 245, 142, 86, 18, 73, 192, 174,
+            111, 233, 125, 71, 235, 132, 32, 24, 20, 221, 35, 233, 242,
+        ];
+        let pk = ed25519_dalek::PublicKey::from_bytes(&pk).unwrap();
 
-    println!("{}", addr);
+        let pk = TonPublicKey(pk);
+        let addr = TonAddress::from_public_key(&pk, &TonFormat::TestnetNonBounceable).unwrap();
+
+        assert_eq!(
+            TonAddress {
+                address: "EQD3efSsNH7xNTSMgqPuyKWaDvJZ9I49DarhD9nPOU4aS46K"
+                    .parse()
+                    .unwrap(),
+                format: TonFormat::TestnetNonBounceable,
+            },
+            addr
+        );
+    }
 }
