@@ -98,7 +98,7 @@ mod tests {
         crate::{address::TonAddress, format::TonFormat, public_key::TonPublicKey},
         anychain_core::{public_key::PublicKey, Address},
         core::str::FromStr,
-        ed25519_dalek::PUBLIC_KEY_LENGTH,
+        ed25519_dalek::{hazmat::raw_sign, PUBLIC_KEY_LENGTH},
     };
 
     #[test]
@@ -131,9 +131,9 @@ mod tests {
             254, 254, 28, 22, 140, 180, 158, 52, 246, 207, 241, 80, 203,
         ];
 
-        let secret_key = ed25519_dalek::SecretKey::from_bytes(&secret_bytes).unwrap();
+        let secret_key = ed25519_dalek::SecretKey::from(secret_bytes);
         let public_key: TonPublicKey = TonPublicKey::from_secret_key(&secret_key);
-        dbg!(&public_key.0.as_bytes());
+        // dbg!(&public_key.0.as_bytes());
 
         let a_addr = public_key
             .to_address(&TonFormat::MainnetBounceable)
@@ -172,17 +172,18 @@ mod tests {
 
     #[test]
     fn test_address_gen() {
-        let sk = [
+        let sk_bytes = [
             163, 27, 236, 35, 251, 127, 152, 172, 241, 108, 136, 153, 30, 28, 111, 7, 8, 203, 61,
             254, 254, 28, 22, 140, 180, 158, 52, 246, 207, 241, 80, 203,
         ];
-        let sk = ed25519_dalek::SecretKey::from_bytes(&sk).unwrap();
-        let pk = ed25519_dalek::PublicKey::from(&sk);
+        let sk = ed25519_dalek::SigningKey::from(sk_bytes);
+        let pk = sk.verifying_key();
 
-        let xsk = ed25519_dalek::ExpandedSecretKey::from(&sk);
+        let xsk = ed25519_dalek::hazmat::ExpandedSecretKey::from(&sk_bytes);
         let msg = "e1e0c6e409ed279f8267a96c63c01d24bf5dc698d882ff1dce28c95acbeb8cb7";
         let msg = hex::decode(msg).unwrap();
-        let sig = xsk.sign(&msg, &pk);
+        let sig = raw_sign::<sha2::Sha512>(&xsk, &msg, &pk);
+        // let sig = xsk.sign(&msg, &pk);
         let sig = sig.to_bytes();
         let sig = hex::encode(sig);
 
@@ -204,12 +205,12 @@ mod tests {
 
     #[test]
     fn test_address_gen1() {
-        let sk = [
+        let sk_bytes = [
             123, 119, 75, 83, 182, 162, 80, 116, 206, 83, 201, 219, 245, 142, 86, 18, 73, 192, 174,
             111, 233, 125, 71, 235, 132, 32, 24, 20, 221, 35, 233, 242,
         ];
-        let sk = ed25519_dalek::SecretKey::from_bytes(&sk).unwrap();
-        let pk = ed25519_dalek::PublicKey::from(&sk);
+        let sk: ed25519_dalek::SecretKey = sk_bytes;
+        let pk = ed25519_dalek::SigningKey::from_bytes(&sk).verifying_key();
         let pk_bytes = pk.to_bytes();
         assert_eq!(
             [
@@ -219,10 +220,10 @@ mod tests {
             pk_bytes
         );
 
-        let xsk = ed25519_dalek::ExpandedSecretKey::from(&sk);
+        let xsk = ed25519_dalek::hazmat::ExpandedSecretKey::from(&sk);
         let msg = "4eb4e0616d6905c149c11f55f9efb1f63e02037e2c8c89f91e3f197ac46b47b2";
         let msg = hex::decode(msg).unwrap();
-        let sig = xsk.sign(&msg, &pk);
+        let sig = raw_sign::<sha2::Sha512>(&xsk, &msg, &pk);
         let sig = sig.to_bytes();
         let sig = hex::encode(sig);
         assert_eq!("8d08fb78c7b68d9f5a36f958ebd8be6978e932bcba958f018dda0a9019f343061b43db6e621d4a0777742427bb2254f83d992aadb334b510aa430233e73fb705", sig);
@@ -247,7 +248,7 @@ mod tests {
             123, 119, 75, 83, 182, 162, 80, 116, 206, 83, 201, 219, 245, 142, 86, 18, 73, 192, 174,
             111, 233, 125, 71, 235, 132, 32, 24, 20, 221, 35, 233, 242,
         ];
-        let pk = ed25519_dalek::PublicKey::from_bytes(&pk).unwrap();
+        let pk = ed25519_dalek::VerifyingKey::from_bytes(&pk).unwrap();
 
         let pk = TonPublicKey(pk);
         let addr = TonAddress::from_public_key(&pk, &TonFormat::TestnetNonBounceable).unwrap();
