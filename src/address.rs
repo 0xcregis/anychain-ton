@@ -48,7 +48,7 @@ impl Address for TonAddress {
     }
 
     fn is_valid(address: &str) -> bool {
-        if address.len() != 48 {
+        if !matches!(address.len(), 48 | 66) {
             return false;
         }
         InnerTonAddress::from_str(address).is_ok()
@@ -59,7 +59,7 @@ impl FromStr for TonAddress {
     type Err = AddressError;
 
     fn from_str(addr: &str) -> Result<Self, Self::Err> {
-        if addr.len() != 48 {
+        if !matches!(addr.len(), 48 | 66) {
             return Err(AddressError::InvalidCharacterLength(addr.len()));
         }
 
@@ -262,5 +262,20 @@ mod tests {
             },
             addr
         );
+    }
+
+    #[test]
+    fn test_decode_jetton_address() {
+        let jetton_addr_str = "0:48FA147B278E22D7FE26C9C7D449999AC929CB818B3BC7A032E5988E73576EB6";
+
+        let mut jetton_addr = TonAddress::from_str(jetton_addr_str).unwrap();
+        jetton_addr.format = TonFormat::TestnetNonBounceable;
+        jetton_addr.format = TonFormat::MainnetNonBounceable;
+        jetton_addr.format = TonFormat::TestnetBounceable;
+        assert_eq!(
+            "kQBI+hR7J44i1/4mycfUSZmaySnLgYs7x6Ay5ZiOc1dutqkJ",
+            jetton_addr.to_string()
+        );
+        jetton_addr.format = TonFormat::MainnetBounceable;
     }
 }
