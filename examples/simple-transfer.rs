@@ -1,9 +1,10 @@
 use base64::engine::{general_purpose, Engine};
 use num_bigint::BigUint;
+use num_traits::Zero;
 use std::{sync::Arc, time::SystemTime};
 use toncenter::client::{ApiClientV2, ApiKey, Network};
 use tonlib_core_anychain::{
-    cell::BagOfCells,
+    cell::{BagOfCells, CellBuilder},
     message::TransferMessage,
     message::{CommonMsgInfo, TonMessage},
     mnemonic::KeyPair,
@@ -63,7 +64,7 @@ fn build_simple_transfer_boc() -> String {
         key_pair.secret_key, key_pair.public_key
     );
     // TODO: increase seqno each time
-    let seqno = 16;
+    let seqno = 23;
     let wallet = TonWallet::derive_default(WalletVersion::V4R2, &key_pair).unwrap();
 
     let dest: TonAddress = "UQArwydSwhC0V8pMeBmezODPCTeqzPv56TvtprsbSgYziIVG"
@@ -71,7 +72,20 @@ fn build_simple_transfer_boc() -> String {
         .unwrap();
     let value = BigUint::from(1_000u64); // 1e-06 TON
     let transfer_internal = CommonMsgInfo::new_default_internal(&dest, &value);
-    let transfer = TransferMessage::new(transfer_internal).build().unwrap();
+
+    let body = "hello anychain";
+    let transfer_body = CellBuilder::new()
+        .store_uint(32, &BigUint::zero())
+        .unwrap()
+        .store_string(body)
+        .unwrap()
+        .build()
+        .unwrap();
+
+    let transfer = TransferMessage::new(transfer_internal)
+        .with_data(Arc::new(transfer_body))
+        .build()
+        .unwrap();
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
@@ -91,4 +105,23 @@ fn build_simple_transfer_boc() -> String {
 #[test]
 fn test() {
     let s = build_simple_transfer_boc();
+    dbg!(s);
+}
+
+#[test]
+fn test_build_transfer_body() {
+    use tonlib_core_anychain::cell::CellBuilder;
+
+    let body = "hello anychain";
+    let cell = CellBuilder::new()
+        .store_uint(32, &BigUint::zero())
+        .unwrap()
+        .store_string(body)
+        .unwrap()
+        .build();
+    assert!(cell.is_ok());
+
+    let cell = cell.unwrap();
+    let cell_data_b64 = hex::encode(cell.data());
+    assert_eq!("0000000068656c6c6f20616e79636861696e", cell_data_b64);
 }
