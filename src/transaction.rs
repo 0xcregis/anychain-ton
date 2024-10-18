@@ -103,7 +103,7 @@ impl Transaction for TonTransaction {
                 let fee = BigUint::from(100000000u64);
 
                 let transfer =
-                    TransferMessage::new(CommonMsgInfo::new_default_internal(&jetton_wallet, &fee))
+                    TransferMessage::new(CommonMsgInfo::new_default_internal(jetton_wallet, &fee))
                         .with_data(jetton_transfer)
                         .build()
                         .unwrap();
