@@ -8,7 +8,7 @@ use {
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TonPublicKey(pub ed25519_dalek::VerifyingKey);
+pub struct TonPublicKey(pub ed25519_dalek::PublicKey);
 
 impl PublicKey for TonPublicKey {
     type SecretKey = ed25519_dalek::SecretKey;
@@ -16,8 +16,8 @@ impl PublicKey for TonPublicKey {
     type Format = TonFormat;
 
     fn from_secret_key(secret_key: &Self::SecretKey) -> Self {
-        let signing_key = ed25519_dalek::SigningKey::from(secret_key);
-        let verifying_key: ed25519_dalek::VerifyingKey = (&signing_key).into();
+        let signing_key = ed25519_dalek::SecretKey::from_bytes(secret_key.as_bytes()).unwrap();
+        let verifying_key: ed25519_dalek::PublicKey = (&signing_key).into();
         TonPublicKey(verifying_key)
     }
 
@@ -41,7 +41,7 @@ impl FromStr for TonPublicKey {
         let mut bytes: [u8; 32] = [0u8; PUBLIC_KEY_LENGTH];
         bytes.copy_from_slice(&base64_bytes[2..34]);
 
-        let public_key = ed25519_dalek::VerifyingKey::from_bytes(&bytes).map_err(|error| {
+        let public_key = ed25519_dalek::PublicKey::from_bytes(&bytes).map_err(|error| {
             PublicKeyError::Crate("Fail to create ed25519 public key", format!("{:?}", error))
         })?;
 
@@ -95,8 +95,8 @@ mod tests {
             255, 15, 68, 27, 88, 255, 216, 254, 24, 44, 59, 74, 151, 224, 27, 173, 74, 215, 116,
             208, 20, 174, 2, 249, 150, 2, 8, 207, 122, 238, 164, 144,
         ];
-        // let secret_key = ed25519_dalek::SecretKey::from(&secret_bytes);
-        let public_key: TonPublicKey = TonPublicKey::from_secret_key(&secret_bytes);
+        let secret_key = ed25519_dalek::SecretKey::from_bytes(&secret_bytes).unwrap();
+        let public_key: TonPublicKey = TonPublicKey::from_secret_key(&secret_key);
         assert_eq!(expected_public_bytes, public_key.0.to_bytes());
 
         // dbg!(public_key.to_string());
@@ -110,8 +110,8 @@ mod tests {
             254, 254, 28, 22, 140, 180, 158, 52, 246, 207, 241, 80, 203,
         ];
 
-        // let secret_key = ed25519_dalek::SecretKey::from(&secret_bytes);
-        let public_key: TonPublicKey = TonPublicKey::from_secret_key(&secret_bytes);
+        let secret_key = ed25519_dalek::SecretKey::from_bytes(&secret_bytes).unwrap();
+        let public_key: TonPublicKey = TonPublicKey::from_secret_key(&secret_key);
 
         let mnemonic = "private two helmet history gravity disease impact slice because silent crunch mammal divert kind faint ketchup holiday soup drill during wash mandate fade mention";
         let mnemonic = Mnemonic::from_str(mnemonic, &None).unwrap();
