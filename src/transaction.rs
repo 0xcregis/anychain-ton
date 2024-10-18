@@ -85,31 +85,39 @@ impl Transaction for TonTransaction {
                 let to = &self.params.to.address;
                 let amount = BigUint::from(self.params.amount);
 
-                let jetton_transfer= Arc::new(JettonTransferMessage {
-                    query_id: 1,
-                    amount,
-                    destination: to.clone(),
-                    response_destination: InnerAddress::NULL,
-                    custom_payload: None,
-                    forward_ton_amount: BigUint::from(1u64),
-                    forward_payload: comment,
-                    forward_payload_layout: EitherCellLayout::Native,
-                }.build().unwrap());
+                let jetton_transfer = Arc::new(
+                    JettonTransferMessage {
+                        query_id: 1,
+                        amount,
+                        destination: to.clone(),
+                        response_destination: InnerAddress::NULL,
+                        custom_payload: None,
+                        forward_ton_amount: BigUint::from(1u64),
+                        forward_payload: comment,
+                        forward_payload_layout: EitherCellLayout::Native,
+                    }
+                    .build()
+                    .unwrap(),
+                );
 
                 let fee = BigUint::from(100000000u64);
 
-                let transfer = TransferMessage::new(
-                    CommonMsgInfo::new_default_internal(&jetton_wallet, &fee)
-                ).with_data(jetton_transfer).build().unwrap();
-                
+                let transfer =
+                    TransferMessage::new(CommonMsgInfo::new_default_internal(&jetton_wallet, &fee))
+                        .with_data(jetton_transfer)
+                        .build()
+                        .unwrap();
+
                 Arc::new(transfer)
             }
             None => {
                 let to = &self.params.to.address;
                 let amount = BigUint::from(self.params.amount);
-                let transfer = TransferMessage::new(
-                    CommonMsgInfo::new_default_internal(to, &amount)
-                ).with_data(comment).build().unwrap();
+                let transfer =
+                    TransferMessage::new(CommonMsgInfo::new_default_internal(to, &amount))
+                        .with_data(comment)
+                        .build()
+                        .unwrap();
 
                 Arc::new(transfer)
             }
@@ -195,7 +203,7 @@ mod tests {
     use std::time::SystemTime;
     // use tokio::runtime::Runtime;
     // use toncenter::client::{ApiClientV2, ApiKey, Network};
-    
+
     #[test]
     fn test_tx_gen() {
         let jetton_wallet = "kQBxhr6kc3yKfB3i91V2fFLP8HpwxwBt_Gw9lppe9icJkuWY";
@@ -232,7 +240,7 @@ mod tests {
             "90d45852d51697cb57390bb4ea2d512760b7650551007b3a883f7d9ef04aecae",
             msg
         );
-        
+
         let sig = "fe260362985c26f876d26fb9bcfdf5b2ede940c30001b7931ce4535125b90e35f509c05947b9a8de224dfb9e1157799c95e5bcd702d4ca8fa3a507679471a001";
         let sig = hex::decode(sig).unwrap();
 
