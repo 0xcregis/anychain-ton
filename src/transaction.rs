@@ -18,6 +18,7 @@ pub struct TonTransactionParameters {
     pub to: TonAddress,
     pub amount: u64,
     pub seqno: u32,
+    pub comment: String,
     pub now: u32,
     pub public_key: [u8; 32],
 }
@@ -72,44 +73,43 @@ impl Transaction for TonTransaction {
     }
 
     fn to_bytes(&self) -> Result<Vec<u8>, TransactionError> {
+        // here we create the cell of the comment
+        let mut builder = CellBuilder::new();
+        let _ = builder.store_u32(32, 0);
+        let _ = builder.store_string(&self.params.comment);
+        let comment = Arc::new(builder.build().unwrap());
+
         let transfer = match &self.params.jetton_wallet {
             Some(jetton_wallet) => {
                 let jetton_wallet = &jetton_wallet.address;
                 let to = &self.params.to.address;
                 let amount = BigUint::from(self.params.amount);
 
-                let jetton_transfer = Arc::new(
-                    JettonTransferMessage {
-                        query_id: 1,
-                        amount,
-                        destination: to.clone(),
-                        response_destination: InnerAddress::NULL,
-                        custom_payload: None,
-                        forward_ton_amount: BigUint::from(1u64),
-                        forward_payload: Arc::new(Cell::default()),
-                        forward_payload_layout: EitherCellLayout::Native,
-                    }
-                    .build()
-                    .unwrap(),
-                );
+                let jetton_transfer= Arc::new(JettonTransferMessage {
+                    query_id: 1,
+                    amount,
+                    destination: to.clone(),
+                    response_destination: InnerAddress::NULL,
+                    custom_payload: None,
+                    forward_ton_amount: BigUint::from(1u64),
+                    forward_payload: comment,
+                    forward_payload_layout: EitherCellLayout::Native,
+                }.build().unwrap());
 
                 let fee = BigUint::from(100000000u64);
 
-                let transfer =
-                    TransferMessage::new(CommonMsgInfo::new_default_internal(jetton_wallet, &fee))
-                        .with_data(jetton_transfer)
-                        .build()
-                        .unwrap();
-
+                let transfer = TransferMessage::new(
+                    CommonMsgInfo::new_default_internal(&jetton_wallet, &fee)
+                ).with_data(jetton_transfer).build().unwrap();
+                
                 Arc::new(transfer)
             }
             None => {
                 let to = &self.params.to.address;
                 let amount = BigUint::from(self.params.amount);
-                let transfer =
-                    TransferMessage::new(CommonMsgInfo::new_default_internal(to, &amount))
-                        .build()
-                        .unwrap();
+                let transfer = TransferMessage::new(
+                    CommonMsgInfo::new_default_internal(to, &amount)
+                ).with_data(comment).build().unwrap();
 
                 Arc::new(transfer)
             }
@@ -195,6 +195,7 @@ mod tests {
     use std::time::SystemTime;
     // use tokio::runtime::Runtime;
     // use toncenter::client::{ApiClientV2, ApiKey, Network};
+    
     #[test]
     fn test_tx_gen() {
         let jetton_wallet = "kQBxhr6kc3yKfB3i91V2fFLP8HpwxwBt_Gw9lppe9icJkuWY";
@@ -217,6 +218,7 @@ mod tests {
             to: to.clone(),
             amount: 10000000000,
             seqno: 14,
+            comment: "mao".to_string(),
             now: 1728698931,
             public_key: pk,
         };
@@ -227,16 +229,17 @@ mod tests {
         let msg = hex::encode(msg);
 
         assert_eq!(
-            "c41d96203ef8f88bd5a955338f538b68468ac414e39a778105db5abcf76341e6",
+            "90d45852d51697cb57390bb4ea2d512760b7650551007b3a883f7d9ef04aecae",
             msg
         );
+        
         let sig = "fe260362985c26f876d26fb9bcfdf5b2ede940c30001b7931ce4535125b90e35f509c05947b9a8de224dfb9e1157799c95e5bcd702d4ca8fa3a507679471a001";
         let sig = hex::decode(sig).unwrap();
 
         let tx = tx.sign(sig, 0).unwrap();
         let tx = general_purpose::STANDARD.encode(&tx);
 
-        assert_eq!("te6cckEBBAEA5QABRYgB7vPpWGj94mppGQVH3ZFLNB3ks+kcehtVwh+znnKcNJYMAQGc/iYDYphcJvh20m+5vP31su3pQMMAAbeTHORTUSW5DjX1CcBZR7mo3iJN+54RV3mcleW81wLUyo+jpQdnlHGgASmpoxdnCdyLAAAADgADAgFoMgA4w19SOb5FPg7xe6q7Piln+D04Y4A2/jYey00vexOEySAvrwgAAAAAAAAAAAAAAAAAAQMAaQ+KfqUAAAAAAAAAAVAlQL5ACAB0ttZSiT0H8Ao/0eOm+USFE31uySp0+V4DiOrTvtspKgQFMaLDEg==", tx);
+        assert_eq!("te6cckEBBAEA7AABRYgB7vPpWGj94mppGQVH3ZFLNB3ks+kcehtVwh+znnKcNJYMAQGc/iYDYphcJvh20m+5vP31su3pQMMAAbeTHORTUSW5DjX1CcBZR7mo3iJN+54RV3mcleW81wLUyo+jpQdnlHGgASmpoxdnCdyLAAAADgADAgFoMgA4w19SOb5FPg7xe6q7Piln+D04Y4A2/jYey00vexOEySAvrwgAAAAAAAAAAAAAAAAAAQMAdw+KfqUAAAAAAAAAAVAlQL5ACAB0ttZSiT0H8Ao/0eOm+USFE31uySp0+V4DiOrTvtspKgQEAAAAANrC3yKNt6A=", tx);
 
         // let api_key = "a8b61ced4be11488cb6e82d65b93e3d4a29d20af406aed9688b9e0077e2dc742".to_string();
         // let api_client = ApiClientV2::new(Network::Testnet, Some(ApiKey::Header(api_key)));
