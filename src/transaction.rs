@@ -102,11 +102,13 @@ impl Transaction for TonTransaction {
 
                 let fee = BigUint::from(100000000u64);
 
-                let transfer =
-                    TransferMessage::new(CommonMsgInfo::new_default_internal(jetton_wallet, &fee))
-                        .with_data(jetton_transfer)
-                        .build()
-                        .unwrap();
+                let transfer = TransferMessage::new(CommonMsgInfo::new_internal_non_bounceable(
+                    jetton_wallet,
+                    &fee,
+                ))
+                .with_data(jetton_transfer)
+                .build()
+                .unwrap();
 
                 Arc::new(transfer)
             }
@@ -114,7 +116,7 @@ impl Transaction for TonTransaction {
                 let to = &self.params.to.address;
                 let amount = BigUint::from(self.params.amount);
                 let transfer =
-                    TransferMessage::new(CommonMsgInfo::new_default_internal(to, &amount))
+                    TransferMessage::new(CommonMsgInfo::new_internal_non_bounceable(to, &amount))
                         .with_data(comment)
                         .build()
                         .unwrap();
@@ -235,9 +237,10 @@ mod tests {
 
         let msg = tx.to_bytes().unwrap();
         let msg = hex::encode(msg);
+        println!("{}", msg);
 
         assert_eq!(
-            "90d45852d51697cb57390bb4ea2d512760b7650551007b3a883f7d9ef04aecae",
+            "16ae2e642ec7a0dd8652a31d8726b558e87a2bbafba77895df52eacacb5be57c",
             msg
         );
 
@@ -247,7 +250,7 @@ mod tests {
         let tx = tx.sign(sig, 0).unwrap();
         let tx = general_purpose::STANDARD.encode(&tx);
 
-        assert_eq!("te6cckEBBAEA7AABRYgB7vPpWGj94mppGQVH3ZFLNB3ks+kcehtVwh+znnKcNJYMAQGc/iYDYphcJvh20m+5vP31su3pQMMAAbeTHORTUSW5DjX1CcBZR7mo3iJN+54RV3mcleW81wLUyo+jpQdnlHGgASmpoxdnCdyLAAAADgADAgFoMgA4w19SOb5FPg7xe6q7Piln+D04Y4A2/jYey00vexOEySAvrwgAAAAAAAAAAAAAAAAAAQMAdw+KfqUAAAAAAAAAAVAlQL5ACAB0ttZSiT0H8Ao/0eOm+USFE31uySp0+V4DiOrTvtspKgQEAAAAANrC3yKNt6A=", tx);
+        assert_eq!("te6cckEBBAEA7AABRYgB7vPpWGj94mppGQVH3ZFLNB3ks+kcehtVwh+znnKcNJYMAQGc/iYDYphcJvh20m+5vP31su3pQMMAAbeTHORTUSW5DjX1CcBZR7mo3iJN+54RV3mcleW81wLUyo+jpQdnlHGgASmpoxdnCdyLAAAADgADAgFoAgA4w19SOb5FPg7xe6q7Piln+D04Y4A2/jYey00vexOEySAvrwgAAAAAAAAAAAAAAAAAAQMAdw+KfqUAAAAAAAAAAVAlQL5ACAB0ttZSiT0H8Ao/0eOm+USFE31uySp0+V4DiOrTvtspKgQEAAAAANrC30W3plE=", tx);
 
         // let api_key = "a8b61ced4be11488cb6e82d65b93e3d4a29d20af406aed9688b9e0077e2dc742".to_string();
         // let api_client = ApiClientV2::new(Network::Testnet, Some(ApiKey::Header(api_key)));
