@@ -102,11 +102,13 @@ impl Transaction for TonTransaction {
 
                 let fee = BigUint::from(100000000u64);
 
-                let transfer =
-                    TransferMessage::new(CommonMsgInfo::new_default_internal(jetton_wallet, &fee))
-                        .with_data(jetton_transfer)
-                        .build()
-                        .unwrap();
+                let transfer = TransferMessage::new(CommonMsgInfo::new_internal_non_bounceable(
+                    jetton_wallet,
+                    &fee,
+                ))
+                .with_data(jetton_transfer)
+                .build()
+                .unwrap();
 
                 Arc::new(transfer)
             }
@@ -114,7 +116,7 @@ impl Transaction for TonTransaction {
                 let to = &self.params.to.address;
                 let amount = BigUint::from(self.params.amount);
                 let transfer =
-                    TransferMessage::new(CommonMsgInfo::new_default_internal(to, &amount))
+                    TransferMessage::new(CommonMsgInfo::new_internal_non_bounceable(to, &amount))
                         .with_data(comment)
                         .build()
                         .unwrap();
