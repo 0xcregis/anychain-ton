@@ -100,7 +100,7 @@ impl Transaction for TonTransaction {
                     .unwrap(),
                 );
 
-                let fee = BigUint::from(100000000u64);
+                let fee = BigUint::from(15000000u64);
 
                 let transfer = TransferMessage::new(CommonMsgInfo::new_internal_non_bounceable(
                     jetton_wallet,
@@ -240,7 +240,7 @@ mod tests {
         println!("{}", msg);
 
         assert_eq!(
-            "16ae2e642ec7a0dd8652a31d8726b558e87a2bbafba77895df52eacacb5be57c",
+            "3c9215e621378dee415e9e1f8bc79905204ffcabb5a3c4e7f7bd41791c59b66a",
             msg
         );
 
@@ -249,8 +249,9 @@ mod tests {
 
         let tx = tx.sign(sig, 0).unwrap();
         let tx = general_purpose::STANDARD.encode(&tx);
+        println!("tx: {}", tx);
 
-        assert_eq!("te6cckEBBAEA7AABRYgB7vPpWGj94mppGQVH3ZFLNB3ks+kcehtVwh+znnKcNJYMAQGc/iYDYphcJvh20m+5vP31su3pQMMAAbeTHORTUSW5DjX1CcBZR7mo3iJN+54RV3mcleW81wLUyo+jpQdnlHGgASmpoxdnCdyLAAAADgADAgFoAgA4w19SOb5FPg7xe6q7Piln+D04Y4A2/jYey00vexOEySAvrwgAAAAAAAAAAAAAAAAAAQMAdw+KfqUAAAAAAAAAAVAlQL5ACAB0ttZSiT0H8Ao/0eOm+USFE31uySp0+V4DiOrTvtspKgQEAAAAANrC30W3plE=", tx);
+        assert_eq!("te6cckEBBAEA6wABRYgB7vPpWGj94mppGQVH3ZFLNB3ks+kcehtVwh+znnKcNJYMAQGc/iYDYphcJvh20m+5vP31su3pQMMAAbeTHORTUSW5DjX1CcBZR7mo3iJN+54RV3mcleW81wLUyo+jpQdnlHGgASmpoxdnCdyLAAAADgADAgFmAgA4w19SOb5FPg7xe6q7Piln+D04Y4A2/jYey00vexOEyR8nDgAAAAAAAAAAAAAAAAABAwB3D4p+pQAAAAAAAAABUCVAvkAIAHS21lKJPQfwCj/R46b5RIUTfW7JKnT5XgOI6tO+2ykqBAQAAAAA2sLfWTUhtQ==", tx);
 
         // let api_key = "a8b61ced4be11488cb6e82d65b93e3d4a29d20af406aed9688b9e0077e2dc742".to_string();
         // let api_client = ApiClientV2::new(Network::Testnet, Some(ApiKey::Header(api_key)));
