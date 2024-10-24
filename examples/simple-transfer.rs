@@ -71,7 +71,7 @@ fn build_simple_transfer_boc() -> String {
         .parse()
         .unwrap();
     let value = BigUint::from(1_000u64); // 1e-06 TON
-    let transfer_internal = CommonMsgInfo::new_default_internal(&dest, &value);
+    let transfer_internal = CommonMsgInfo::new_internal_non_bounceable(&dest, &value);
 
     let body = "hello anychain";
     let transfer_body = CellBuilder::new()

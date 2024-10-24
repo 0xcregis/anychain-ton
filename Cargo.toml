@@ -11,7 +11,7 @@ repository = "https://github.com/0xcregis/anychain-ton"
 
 [dependencies]
 anychain-core = { version = "0.1.6" }
-tonlib-core-anychain = { version = "0.19.3" }
+tonlib-core-anychain = { version = "0.19.4" }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 num-bigint = { version = "0.4", features = ["serde"] }
 num-traits = { version = "0.2" }
