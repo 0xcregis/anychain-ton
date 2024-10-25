@@ -36,7 +36,7 @@ dependencies = [
 
 [[package]]
 name = "anychain-ton"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "anychain-core",
  "base64",
@@ -295,9 +295,9 @@ dependencies = [
 
 [[package]]
 name = "encoding_rs"
-version = "0.8.34"
+version = "0.8.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b45de904aa0b010bce2ab45264d0631681847fa7b6f2eaa7dab7619943bc4f59"
+checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
 dependencies = [
  "cfg-if",
 ]
@@ -883,9 +883,9 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "pin-project-lite"
-version = "0.2.14"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bda66fc9667c18cb2758a2ac84d1167245054bcf85d5d1aaa6923f45801bdd02"
+checksum = "915a1e146535de9163f3987b8944ed8cf49a18bb0056bcebcdcece385cece4ff"
 
 [[package]]
 name = "pin-utils"
@@ -1490,9 +1490,9 @@ dependencies = [
 
 [[package]]
 name = "tonlib-core-anychain"
-version = "0.19.4"
+version = "0.19.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "568b3d32dd26370bf377c8fb75019a881072c1e1772adb59a2f8ecc7b8b6241c"
+checksum = "6a649b7781541a454ef6a41170571d61e84b2fab8ccbd9b82b10cfb301abde8f"
 dependencies = [
  "base64",
  "bitstream-io",
