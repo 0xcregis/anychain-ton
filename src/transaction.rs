@@ -397,7 +397,6 @@ mod tests {
         assert_eq!("te6cckEBBAEA6wABRYgB7vPpWGj94mppGQVH3ZFLNB3ks+kcehtVwh+znnKcNJYMAQGc/iYDYphcJvh20m+5vP31su3pQMMAAbeTHORTUSW5DjX1CcBZR7mo3iJN+54RV3mcleW81wLUyo+jpQdnlHGgASmpoxdnCdyLAAAADgADAgFmQgA4w19SOb5FPg7xe6q7Piln+D04Y4A2/jYey00vexOEyR8nDgAAAAAAAAAAAAAAAAABAwB3D4p+pQAAAAAAAAABUCVAvkAIAHS21lKJPQfwCj/R46b5RIUTfW7JKnT5XgOI6tO+2ykqBAQAAAAA2sLfzkxo+A==", tx);
 
         let tx = TonTransaction::from_str(&tx).unwrap();
-        println!("tx: {:?}", tx);
 
         // let api_key = "a8b61ced4be11488cb6e82d65b93e3d4a29d20af406aed9688b9e0077e2dc742".to_string();
         // let api_client = ApiClientV2::new(Network::Testnet, Some(ApiKey::Header(api_key)));
