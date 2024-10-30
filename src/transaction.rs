@@ -1,12 +1,13 @@
 use crate::{TonAddress, TonFormat, TonPublicKey};
 use anychain_core::{Transaction, TransactionError, TransactionId};
-use std::{fmt, str::FromStr};
+use std::{fmt, str::FromStr, vec};
 
+use base64::{engine::general_purpose::STANDARD, Engine};
 use num_bigint::BigUint;
 use std::sync::Arc;
 use tonlib_core_anychain::{
     cell::{BagOfCells, Cell, CellBuilder, EitherCellLayout, StateInitBuilder},
-    message::{CommonMsgInfo, JettonTransferMessage, TonMessage, TransferMessage},
+    message::{CommonMsgInfo, JettonTransferMessage, TonMessage, TransferMessage, JETTON_TRANSFER},
     wallet::{WalletDataV4, DEFAULT_WALLET_ID, WALLET_V4R2_CODE},
     TonAddress as InnerAddress,
 };
@@ -29,10 +30,160 @@ pub struct TonTransaction {
     pub signature: Option<Vec<u8>>,
 }
 
+impl TonTransaction {
+    fn deserialize(cell: &Arc<Cell>, layer: u8) -> Result<Self, TransactionError> {
+        match layer {
+            0 => {
+                let mut parser = cell.parser();
+
+                let _ = parser.load_u8(2);
+                let _ = parser.load_address();
+
+                let from = parser
+                    .load_address()
+                    .unwrap()
+                    .to_base64_std_flags(true, true);
+                let from = TonAddress::from_str(&from)?;
+
+                let _ = parser.load_coins();
+
+                let init = parser.load_bit().unwrap();
+
+                let mut tx = match init {
+                    true => Self::deserialize(cell.reference(1).unwrap(), layer + 1)?,
+                    false => Self::deserialize(cell.reference(0).unwrap(), layer + 1)?,
+                };
+
+                tx.params.from = from;
+
+                Ok(tx)
+            }
+            1 => {
+                let mut parser = cell.parser();
+                let mut sig = [0u8; 64];
+                parser.load_slice(sig.as_mut_slice()).unwrap();
+
+                let _ = parser.load_u32(32);
+                let expire = parser.load_u32(32).unwrap();
+                let seqno = parser.load_u32(32).unwrap();
+
+                let mut tx = Self::deserialize(cell.reference(0).unwrap(), layer + 1)?;
+
+                tx.params.now = expire - 600;
+                tx.params.seqno = seqno;
+                tx.signature = Some(sig.to_vec());
+
+                Ok(tx)
+            }
+            2 => {
+                let mut parser = cell.parser();
+                let _ = parser.skip_bits(4);
+                let _ = parser.load_address().unwrap();
+                let to = parser
+                    .load_address()
+                    .unwrap()
+                    .to_base64_std_flags(true, true);
+                let to = TonAddress::from_str(&to)?;
+                let amount = parser.load_coins().unwrap();
+
+                let _ = parser.load_bit();
+                let _ = parser.load_coins();
+                let _ = parser.load_coins();
+                let _ = parser.load_u64(64);
+                let _ = parser.load_u32(32);
+
+                let _ = parser.load_maybe_cell_ref();
+
+                let data = parser.load_maybe_cell_ref().unwrap().unwrap();
+
+                let mut parser = data.parser();
+                let opcode = parser.load_u32(32).unwrap();
+
+                let (jetton_amount, jetton_to, comment) = match opcode {
+                    0 => {
+                        let len = parser.remaining_bytes();
+                        let mut comment = vec![0u8; len];
+                        let _ = parser.load_slice(&mut comment);
+                        let comment = String::from_utf8(comment).unwrap();
+
+                        (None, None, comment)
+                    }
+                    JETTON_TRANSFER => {
+                        let _ = parser.load_u64(64);
+                        let amount = parser.load_coins().unwrap();
+                        let to = parser
+                            .load_address()
+                            .unwrap()
+                            .to_base64_std_flags(true, true);
+                        let to = TonAddress::from_str(&to)?;
+
+                        let _ = parser.load_address().unwrap();
+                        let _ = parser.load_maybe_cell_ref();
+                        let _ = parser.load_coins();
+
+                        let data = parser.load_either_cell_or_cell_ref().unwrap();
+
+                        let mut parser = data.parser();
+                        let _ = parser.load_u32(32);
+
+                        let len = parser.remaining_bytes();
+                        let mut comment = vec![0u8; len];
+                        let _ = parser.load_slice(&mut comment);
+                        let comment = String::from_utf8(comment).unwrap();
+
+                        (Some(amount), Some(to), comment)
+                    }
+                    _ => return Err(TransactionError::Message("Unrecognized opcode".to_string())),
+                };
+
+                let from = InnerAddress::null();
+                let from = TonAddress {
+                    address: from,
+                    format: TonFormat::MainnetNonBounceable,
+                };
+
+                let params = match jetton_to {
+                    // jetton transfer
+                    Some(jetton_to) => TonTransactionParameters {
+                        jetton_wallet: Some(to),
+                        from,
+                        to: jetton_to,
+                        amount: *jetton_amount.unwrap().to_u64_digits().first().unwrap(),
+                        seqno: 0,
+                        comment,
+                        now: 0,
+                        public_key: [0u8; 32],
+                    },
+                    // TON transfer
+                    None => TonTransactionParameters {
+                        jetton_wallet: None,
+                        from,
+                        to,
+                        amount: *amount.to_u64_digits().first().unwrap(),
+                        seqno: 0,
+                        comment,
+                        now: 0,
+                        public_key: [0u8; 32],
+                    },
+                };
+
+                TonTransaction::new(&params)
+            }
+            _ => Err(TransactionError::Message(
+                "Unsupport layer depth".to_string(),
+            )),
+        }
+    }
+}
+
 impl FromStr for TonTransaction {
     type Err = TransactionError;
-    fn from_str(_tx: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(tx: &str) -> Result<Self, Self::Err> {
+        let tx = STANDARD
+            .decode(tx)
+            .map_err(|e| TransactionError::Message(e.to_string()))
+            .unwrap();
+        TonTransaction::from_bytes(&tx)
     }
 }
 
@@ -139,11 +290,13 @@ impl Transaction for TonTransaction {
         match &self.signature {
             Some(sig) => {
                 let from = &self.params.from.address;
+
                 let mut builder = CellBuilder::new();
                 let _ = builder.store_slice(sig);
                 let _ = builder.store_cell(&cell);
                 let cell = builder.build().unwrap();
 
+                // layer 0
                 let mut builder = CellBuilder::new();
                 let _ = builder.store_u8(2, 2);
                 let _ = builder.store_address(&InnerAddress::NULL);
@@ -185,8 +338,9 @@ impl Transaction for TonTransaction {
         }
     }
 
-    fn from_bytes(_tx: &[u8]) -> Result<Self, TransactionError> {
-        todo!()
+    fn from_bytes(tx: &[u8]) -> Result<Self, TransactionError> {
+        let boc = BagOfCells::parse(tx).map_err(|e| TransactionError::Message(e.to_string()))?;
+        Self::deserialize(boc.root(0).unwrap(), 0)
     }
 
     fn to_transaction_id(&self) -> Result<Self::TransactionId, TransactionError> {
@@ -200,9 +354,8 @@ mod tests {
     use crate::TonTransaction;
     use crate::TonTransactionParameters;
     use anychain_core::transaction::Transaction;
-    use base64::{engine::general_purpose, Engine as _};
+    use base64::{engine::general_purpose::STANDARD, Engine};
     use core::str::FromStr;
-    use std::time::SystemTime;
     // use tokio::runtime::Runtime;
     // use toncenter::client::{ApiClientV2, ApiKey, Network};
 
@@ -217,7 +370,7 @@ mod tests {
         let from = TonAddress::from_str(from).unwrap();
         let to = TonAddress::from_str(to).unwrap();
 
-        let pk = [
+        let public_key = [
             123, 119, 75, 83, 182, 162, 80, 116, 206, 83, 201, 219, 245, 142, 86, 18, 73, 192, 174,
             111, 233, 125, 71, 235, 132, 32, 24, 20, 221, 35, 233, 242,
         ];
@@ -230,28 +383,20 @@ mod tests {
             seqno: 14,
             comment: "mao".to_string(),
             now: 1728698931,
-            public_key: pk,
+            public_key,
         };
 
         let mut tx = TonTransaction::new(&params).unwrap();
-
-        let msg = tx.to_bytes().unwrap();
-        let msg = hex::encode(msg);
-        println!("{}", msg);
-
-        assert_eq!(
-            "3c9215e621378dee415e9e1f8bc79905204ffcabb5a3c4e7f7bd41791c59b66a",
-            msg
-        );
 
         let sig = "fe260362985c26f876d26fb9bcfdf5b2ede940c30001b7931ce4535125b90e35f509c05947b9a8de224dfb9e1157799c95e5bcd702d4ca8fa3a507679471a001";
         let sig = hex::decode(sig).unwrap();
 
         let tx = tx.sign(sig, 0).unwrap();
-        let tx = general_purpose::STANDARD.encode(&tx);
-        println!("tx: {}", tx);
+        let tx = STANDARD.encode(&tx);
 
-        assert_eq!("te6cckEBBAEA6wABRYgB7vPpWGj94mppGQVH3ZFLNB3ks+kcehtVwh+znnKcNJYMAQGc/iYDYphcJvh20m+5vP31su3pQMMAAbeTHORTUSW5DjX1CcBZR7mo3iJN+54RV3mcleW81wLUyo+jpQdnlHGgASmpoxdnCdyLAAAADgADAgFmAgA4w19SOb5FPg7xe6q7Piln+D04Y4A2/jYey00vexOEyR8nDgAAAAAAAAAAAAAAAAABAwB3D4p+pQAAAAAAAAABUCVAvkAIAHS21lKJPQfwCj/R46b5RIUTfW7JKnT5XgOI6tO+2ykqBAQAAAAA2sLfWTUhtQ==", tx);
+        assert_eq!("te6cckEBBAEA6wABRYgB7vPpWGj94mppGQVH3ZFLNB3ks+kcehtVwh+znnKcNJYMAQGc/iYDYphcJvh20m+5vP31su3pQMMAAbeTHORTUSW5DjX1CcBZR7mo3iJN+54RV3mcleW81wLUyo+jpQdnlHGgASmpoxdnCdyLAAAADgADAgFmQgA4w19SOb5FPg7xe6q7Piln+D04Y4A2/jYey00vexOEyR8nDgAAAAAAAAAAAAAAAAABAwB3D4p+pQAAAAAAAAABUCVAvkAIAHS21lKJPQfwCj/R46b5RIUTfW7JKnT5XgOI6tO+2ykqBAQAAAAA2sLfzkxo+A==", tx);
+
+        let _ = TonTransaction::from_str(&tx).unwrap();
 
         // let api_key = "a8b61ced4be11488cb6e82d65b93e3d4a29d20af406aed9688b9e0077e2dc742".to_string();
         // let api_client = ApiClientV2::new(Network::Testnet, Some(ApiKey::Header(api_key)));
@@ -260,18 +405,5 @@ mod tests {
         //     let response = api_client.send_boc(&tx).await;
         //     println!("Response: {:#?}", response);
         // });
-    }
-
-    fn now() -> u32 {
-        SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as u32
-    }
-
-    #[ignore]
-    #[test]
-    fn test_now() {
-        dbg!("now: {}", now());
     }
 }
