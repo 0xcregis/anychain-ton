@@ -77,16 +77,16 @@ impl Display for TonAddress {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self.format {
             TonFormat::MainnetBounceable => {
-                write!(f, "{}", self.address.to_base64_std_flags(false, false))
+                write!(f, "{}", self.address.to_base64_url_flags(false, false))
             }
             TonFormat::TestnetBounceable => {
-                write!(f, "{}", self.address.to_base64_std_flags(false, true))
+                write!(f, "{}", self.address.to_base64_url_flags(false, true))
             }
             TonFormat::MainnetNonBounceable => {
-                write!(f, "{}", self.address.to_base64_std_flags(true, false))
+                write!(f, "{}", self.address.to_base64_url_flags(true, false))
             }
             TonFormat::TestnetNonBounceable => {
-                write!(f, "{}", self.address.to_base64_std_flags(true, true))
+                write!(f, "{}", self.address.to_base64_url_flags(true, true))
             }
         }
     }
@@ -103,10 +103,10 @@ mod tests {
 
     #[test]
     fn test_address_from_str() {
-        let a_str = "EQA6W2spRJ6D+AUf6PHTfKJCib63ZJU6fK8BxHVp322UlZH3";
-        let b_str = "kQA6W2spRJ6D+AUf6PHTfKJCib63ZJU6fK8BxHVp322UlSp9";
-        let c_str = "UQA6W2spRJ6D+AUf6PHTfKJCib63ZJU6fK8BxHVp322Ulcwy";
-        let d_str = "0QA6W2spRJ6D+AUf6PHTfKJCib63ZJU6fK8BxHVp322UlXe4";
+        let a_str = "EQA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlZH3";
+        let b_str = "kQA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlSp9";
+        let c_str = "UQA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322Ulcwy";
+        let d_str = "0QA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlXe4";
 
         let a_addr = TonAddress::from_str(a_str).unwrap();
         let b_addr = TonAddress::from_str(b_str).unwrap();
@@ -154,19 +154,19 @@ mod tests {
 
         assert_eq!(
             a_addr.to_string(),
-            "EQA6W2spRJ6D+AUf6PHTfKJCib63ZJU6fK8BxHVp322UlZH3"
+            "EQA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlZH3"
         );
         assert_eq!(
             b_addr.to_string(),
-            "kQA6W2spRJ6D+AUf6PHTfKJCib63ZJU6fK8BxHVp322UlSp9"
+            "kQA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlSp9"
         );
         assert_eq!(
             c_addr.to_string(),
-            "UQA6W2spRJ6D+AUf6PHTfKJCib63ZJU6fK8BxHVp322Ulcwy"
+            "UQA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322Ulcwy"
         );
         assert_eq!(
             d_addr.to_string(),
-            "0QA6W2spRJ6D+AUf6PHTfKJCib63ZJU6fK8BxHVp322UlXe4"
+            "0QA6W2spRJ6D-AUf6PHTfKJCib63ZJU6fK8BxHVp322UlXe4"
         );
     }
 
@@ -272,7 +272,7 @@ mod tests {
         jetton_addr.format = TonFormat::MainnetNonBounceable;
         jetton_addr.format = TonFormat::TestnetBounceable;
         assert_eq!(
-            "kQBI+hR7J44i1/4mycfUSZmaySnLgYs7x6Ay5ZiOc1dutqkJ",
+            "kQBI-hR7J44i1_4mycfUSZmaySnLgYs7x6Ay5ZiOc1dutqkJ",
             jetton_addr.to_string()
         );
         jetton_addr.format = TonFormat::MainnetBounceable;
