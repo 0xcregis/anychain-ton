@@ -17,7 +17,7 @@ Add the following to your Cargo.toml file:
 
 ```toml
 [dependencies]
-anychain-ton = "0.0.1"
+anychain-ton = "0.1.7"
 ```
 
 Then, run cargo build to download and compile the library.
