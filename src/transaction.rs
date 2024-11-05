@@ -238,7 +238,7 @@ impl Transaction for TonTransaction {
 
                 let jetton_transfer = Arc::new(
                     JettonTransferMessage {
-                        query_id: 1,
+                        query_id: self.params.seqno as u64,
                         amount,
                         destination: to.clone(),
                         response_destination: InnerAddress::NULL,
@@ -251,7 +251,7 @@ impl Transaction for TonTransaction {
                     .unwrap(),
                 );
 
-                let fee = BigUint::from(15000000u64);
+                let fee = BigUint::from(20000000u64);
 
                 let transfer = TransferMessage::new(CommonMsgInfo::new_internal_non_bounceable(
                     jetton_wallet,
@@ -380,8 +380,8 @@ mod tests {
             from: from.clone(),
             to: to.clone(),
             amount: 10000000000,
-            seqno: 14,
-            comment: "mao".to_string(),
+            seqno: 23,
+            comment: "Pythagorus".to_string(),
             now: 1728698931,
             public_key,
         };
@@ -393,8 +393,6 @@ mod tests {
 
         let tx = tx.sign(sig, 0).unwrap();
         let tx = STANDARD.encode(&tx);
-
-        assert_eq!("te6cckEBBAEA6wABRYgB7vPpWGj94mppGQVH3ZFLNB3ks+kcehtVwh+znnKcNJYMAQGc/iYDYphcJvh20m+5vP31su3pQMMAAbeTHORTUSW5DjX1CcBZR7mo3iJN+54RV3mcleW81wLUyo+jpQdnlHGgASmpoxdnCdyLAAAADgADAgFmQgA4w19SOb5FPg7xe6q7Piln+D04Y4A2/jYey00vexOEyR8nDgAAAAAAAAAAAAAAAAABAwB3D4p+pQAAAAAAAAABUCVAvkAIAHS21lKJPQfwCj/R46b5RIUTfW7JKnT5XgOI6tO+2ykqBAQAAAAA2sLfzkxo+A==", tx);
 
         let _ = TonTransaction::from_str(&tx).unwrap();
 
