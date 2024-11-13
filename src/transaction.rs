@@ -43,13 +43,11 @@ fn store_comment(slice: &[u8], layer: u8) -> Arc<Cell> {
         }
         let child = store_comment(&slice[cut..], layer + 1);
         let _ = builder.store_reference(&child);
+    } else if layer == 0 {
+        let _ = builder.store_u32(32, 0);
+        let _ = builder.store_slice(slice);
     } else {
-        if layer == 0 {
-            let _ = builder.store_u32(32, 0);
-            let _ = builder.store_slice(slice);
-        } else {
-            let _ = builder.store_slice(slice);
-        }
+        let _ = builder.store_slice(slice);
     };
 
     let cell = builder.build().unwrap();
@@ -62,11 +60,10 @@ fn load_comment(data: Arc<Cell>, layer: u8) -> Vec<u8> {
     } else {
         data.data().to_vec()
     };
-    
+
     if let Ok(child) = data.reference(0) {
         let child_comment = load_comment(child.clone(), layer + 1);
         comment.extend(child_comment);
-
     }
 
     comment
