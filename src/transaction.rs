@@ -1,6 +1,6 @@
 use crate::{TonAddress, TonFormat, TonPublicKey};
 use anychain_core::{Transaction, TransactionError, TransactionId};
-use std::{fmt, str::FromStr, vec};
+use std::{fmt, str::FromStr};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use num_bigint::BigUint;
@@ -28,6 +28,48 @@ pub struct TonTransactionParameters {
 pub struct TonTransaction {
     pub params: TonTransactionParameters,
     pub signature: Option<Vec<u8>>,
+}
+
+fn store_comment(slice: &[u8], layer: u8) -> Arc<Cell> {
+    let mut builder = CellBuilder::new();
+    let cut = if layer == 0 { 123usize } else { 127usize };
+
+    if slice.len() > cut {
+        if layer == 0 {
+            let _ = builder.store_u32(32, 0);
+            let _ = builder.store_slice(&slice[..cut]);
+        } else {
+            let _ = builder.store_slice(&slice[..cut]);
+        }
+        let child = store_comment(&slice[cut..], layer + 1);
+        let _ = builder.store_reference(&child);
+    } else {
+        if layer == 0 {
+            let _ = builder.store_u32(32, 0);
+            let _ = builder.store_slice(slice);
+        } else {
+            let _ = builder.store_slice(slice);
+        }
+    };
+
+    let cell = builder.build().unwrap();
+    Arc::new(cell)
+}
+
+fn load_comment(data: Arc<Cell>, layer: u8) -> Vec<u8> {
+    let mut comment = if layer == 0 {
+        data.data()[4..].to_vec()
+    } else {
+        data.data().to_vec()
+    };
+    
+    if let Ok(child) = data.reference(0) {
+        let child_comment = load_comment(child.clone(), layer + 1);
+        comment.extend(child_comment);
+
+    }
+
+    comment
 }
 
 impl TonTransaction {
@@ -101,11 +143,12 @@ impl TonTransaction {
 
                 let (jetton_amount, jetton_to, comment) = match opcode {
                     0 => {
-                        let len = parser.remaining_bytes();
-                        let mut comment = vec![0u8; len];
-                        let _ = parser.load_slice(&mut comment);
+                        // let len = parser.remaining_bytes();
+                        // let mut comment = vec![0u8; len];
+                        // let _ = parser.load_slice(&mut comment);
+                        // let comment = String::from_utf8(comment).unwrap();
+                        let comment = load_comment(data, 0);
                         let comment = String::from_utf8(comment).unwrap();
-
                         (None, None, comment)
                     }
                     JETTON_TRANSFER => {
@@ -126,9 +169,11 @@ impl TonTransaction {
                         let mut parser = data.parser();
                         let _ = parser.load_u32(32);
 
-                        let len = parser.remaining_bytes();
-                        let mut comment = vec![0u8; len];
-                        let _ = parser.load_slice(&mut comment);
+                        // let len = parser.remaining_bytes();
+                        // let mut comment = vec![0u8; len];
+                        // let _ = parser.load_slice(&mut comment);
+                        // let comment = String::from_utf8(comment).unwrap();
+                        let comment = load_comment(data, 0);
                         let comment = String::from_utf8(comment).unwrap();
 
                         (Some(amount), Some(to), comment)
@@ -225,10 +270,8 @@ impl Transaction for TonTransaction {
 
     fn to_bytes(&self) -> Result<Vec<u8>, TransactionError> {
         // here we create the cell of the comment
-        let mut builder = CellBuilder::new();
-        let _ = builder.store_u32(32, 0);
-        let _ = builder.store_string(&self.params.comment);
-        let comment = Arc::new(builder.build().unwrap());
+        let comment = self.params.comment.as_bytes();
+        let comment = store_comment(comment, 0);
 
         let transfer = match &self.params.jetton_wallet {
             Some(jetton_wallet) => {
