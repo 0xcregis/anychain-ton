@@ -35,6 +35,32 @@ pub struct TonTransaction {
     pub signature: Option<Vec<u8>>,
 }
 
+fn comment_cell(slice: &[u8], layer: u8) -> Arc<Cell> {
+    let mut builder = CellBuilder::new();
+    let cut = if layer == 0 { 123usize } else { 127usize };
+
+    if slice.len() > cut {
+        if layer == 0 {
+            let _ = builder.store_u32(32, 0);
+            let _ = builder.store_slice(&slice[..cut]);
+        } else {
+            let _ = builder.store_slice(&slice[..cut]);
+        }
+        let child = comment_cell(&slice[cut..], layer + 1);
+        let _ = builder.store_reference(&child);
+    } else {
+        if layer == 0 {
+            let _ = builder.store_u32(32, 0);
+            let _ = builder.store_slice(slice);
+        } else {
+            let _ = builder.store_slice(slice);
+        }
+    };
+
+    let cell = builder.build().unwrap();
+    Arc::new(cell)
+}
+
 impl TonTransaction {
     fn deserialize(cell: &Arc<Cell>, layer: u8) -> Result<Self, TransactionError> {
         match layer {
@@ -247,10 +273,8 @@ impl Transaction for TonTransaction {
 
     fn to_bytes(&self) -> Result<Vec<u8>, TransactionError> {
         // here we create the cell of the comment
-        let mut builder = CellBuilder::new();
-        let _ = builder.store_u32(32, 0);
-        let _ = builder.store_string(&self.params.comment);
-        let comment = Arc::new(builder.build().unwrap());
+        let comment = self.params.comment.as_bytes();
+        let comment = comment_cell(comment, 0);
 
         let transfer = match &self.params.jetton_wallet {
             Some(jetton_wallet) => {
@@ -409,7 +433,7 @@ mod tests {
             to: to.clone(),
             amount: 10000000000,
             seqno: 23,
-            comment: "Pythagorus".to_string(),
+            comment: "fe260362985c26f876d26fb9bcfdf5b2ede940c30001b7931ce4535125b90e35f509c05947b9a8de224dfb9e1157799c95e5bcd702d4ca8fa3a507679471a001".to_string(),
             now: 1728698931,
             logical_time: 0,
             public_key,
