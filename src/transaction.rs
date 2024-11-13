@@ -1,5 +1,6 @@
 use crate::{TonAddress, TonFormat, TonPublicKey};
 use anychain_core::{Transaction, TransactionError, TransactionId};
+use num_traits::Zero;
 use std::{fmt, str::FromStr, vec};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -7,7 +8,10 @@ use num_bigint::BigUint;
 use std::sync::Arc;
 use tonlib_core_anychain::{
     cell::{BagOfCells, Cell, CellBuilder, EitherCellLayout, StateInitBuilder},
-    message::{CommonMsgInfo, JettonTransferMessage, TonMessage, TransferMessage, JETTON_TRANSFER},
+    message::{
+        CommonMsgInfo, InternalMessage, JettonTransferMessage,
+        TonMessage, TransferMessage, JETTON_TRANSFER,
+    },
     wallet::{WalletDataV4, DEFAULT_WALLET_ID, WALLET_V4R2_CODE},
     TonAddress as InnerAddress,
 };
@@ -21,6 +25,7 @@ pub struct TonTransactionParameters {
     pub seqno: u32,
     pub comment: String,
     pub now: u32,
+    pub logical_time: u64,
     pub public_key: [u8; 32],
 }
 
@@ -152,6 +157,7 @@ impl TonTransaction {
                         seqno: 0,
                         comment,
                         now: 0,
+                        logical_time: 0,
                         public_key: [0u8; 32],
                     },
                     // TON transfer
@@ -163,6 +169,7 @@ impl TonTransaction {
                         seqno: 0,
                         comment,
                         now: 0,
+                        logical_time: 0,
                         public_key: [0u8; 32],
                     },
                 };
@@ -197,6 +204,21 @@ impl fmt::Display for TonTransactionId {
 }
 
 impl TransactionId for TonTransactionId {}
+
+fn get_msg_info(to: InnerAddress, amount: BigUint, lt: u64) -> CommonMsgInfo {
+    CommonMsgInfo::InternalMessage(InternalMessage {
+        ihr_disabled: true,
+        bounce: false,
+        bounced: false,
+        src: InnerAddress::NULL,
+        dest: to,
+        value: amount,
+        ihr_fee: BigUint::zero(),
+        fwd_fee: BigUint::zero(),
+        created_lt: lt,
+        created_at: 0,
+    })
+}
 
 impl Transaction for TonTransaction {
     type Address = TonAddress;
@@ -253,10 +275,13 @@ impl Transaction for TonTransaction {
 
                 let fee = BigUint::from(20000000u64);
 
-                let transfer = TransferMessage::new(CommonMsgInfo::new_internal_non_bounceable(
-                    jetton_wallet,
-                    &fee,
-                ))
+                let msg_info = get_msg_info(
+                    jetton_wallet.clone(),
+                    fee,
+                    self.params.logical_time,
+                );
+
+                let transfer = TransferMessage::new(msg_info)
                 .with_data(jetton_transfer)
                 .build()
                 .unwrap();
@@ -266,8 +291,11 @@ impl Transaction for TonTransaction {
             None => {
                 let to = &self.params.to.address;
                 let amount = BigUint::from(self.params.amount);
+
+                let msg_info = get_msg_info(to.clone(), amount, self.params.logical_time);
+
                 let transfer =
-                    TransferMessage::new(CommonMsgInfo::new_internal_non_bounceable(to, &amount))
+                    TransferMessage::new(msg_info)
                         .with_data(comment)
                         .build()
                         .unwrap();
@@ -383,6 +411,7 @@ mod tests {
             seqno: 23,
             comment: "Pythagorus".to_string(),
             now: 1728698931,
+            logical_time: 0,
             public_key,
         };
 
