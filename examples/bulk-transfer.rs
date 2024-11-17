@@ -1,3 +1,7 @@
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 use base64::engine::{general_purpose, Engine};
 use num_bigint::BigUint;
 use num_traits::Zero;
@@ -85,43 +89,44 @@ fn build_bulk_transfer_boc(seqno: u32, inputs: &BulkTransferInput) -> String {
         "sk = {:?}\npk = {:?}",
         key_pair.secret_key, key_pair.public_key
     );
-    let wallet = TonWallet::derive_default(WalletVersion::V4R2, &key_pair).unwrap();
+    let wallet = TonWallet::derive_default(WalletVersion::HighloadV2R2, &key_pair).unwrap();
     dbg!(&inputs);
 
-    let dest: TonAddress = "UQArwydSwhC0V8pMeBmezODPCTeqzPv56TvtprsbSgYziIVG"
-        .parse()
-        .unwrap();
-    let value = BigUint::from(1_000u64); // 1e-06 TON
-    let transfer_internal = CommonMsgInfo::new_internal_non_bounceable(&dest, &value);
+    /*
+        let dest: TonAddress = "UQArwydSwhC0V8pMeBmezODPCTeqzPv56TvtprsbSgYziIVG"
+            .parse()
+            .unwrap();
+        let value = BigUint::from(1_000u64); // 1e-06 TON
+        let transfer_internal = CommonMsgInfo::new_internal_non_bounceable(&dest, &value);
 
-    let body = "hello anychain";
-    let transfer_body = CellBuilder::new()
-        .store_uint(32, &BigUint::zero())
-        .unwrap()
-        .store_string(body)
-        .unwrap()
-        .build()
-        .unwrap();
+        let body = "hello anychain";
+        let transfer_body = CellBuilder::new()
+            .store_uint(32, &BigUint::zero())
+            .unwrap()
+            .store_string(body)
+            .unwrap()
+            .build()
+            .unwrap();
 
-    let transfer = TransferMessage::new(transfer_internal)
-        .with_data(Arc::new(transfer_body))
-        .build()
-        .unwrap();
-    let now = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as u32;
+        let transfer = TransferMessage::new(transfer_internal)
+            .with_data(Arc::new(transfer_body))
+            .build()
+            .unwrap();
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as u32;
 
-    let body = wallet
-        .create_external_body(now + 600, seqno, vec![Arc::new(transfer)])
-        .unwrap();
-    let signed = wallet.sign_external_body(&body).unwrap();
-    let wrapped = wallet.wrap_signed_body(signed, false).unwrap();
-    let boc = BagOfCells::from_root(wrapped);
-    let tx = boc.serialize(true).unwrap();
-    general_purpose::STANDARD.encode(&tx)
-
-    // "foo".to_string()
+        let body = wallet
+            .create_external_body(now + 600, seqno, vec![Arc::new(transfer)])
+            .unwrap();
+        let signed = wallet.sign_external_body(&body).unwrap();
+        let wrapped = wallet.wrap_signed_body(signed, false).unwrap();
+        let boc = BagOfCells::from_root(wrapped);
+        let tx = boc.serialize(true).unwrap();
+        general_purpose::STANDARD.encode(&tx)
+    */
+    "foo".to_string()
 }
 
 #[test]
