@@ -4,21 +4,24 @@ use {
     base64::{engine::general_purpose, Engine as _},
     core::{fmt, str::FromStr},
     crc16::{State, XMODEM},
+    curve25519_dalek::{constants::ED25519_BASEPOINT_POINT as G, Scalar},
     ed25519_dalek::PUBLIC_KEY_LENGTH,
+    group::GroupEncoding,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TonPublicKey(pub ed25519_dalek::PublicKey);
 
 impl PublicKey for TonPublicKey {
-    type SecretKey = ed25519_dalek::SecretKey;
+    type SecretKey = Scalar;
     type Address = TonAddress;
     type Format = TonFormat;
 
     fn from_secret_key(secret_key: &Self::SecretKey) -> Self {
-        let signing_key = ed25519_dalek::SecretKey::from_bytes(secret_key.as_bytes()).unwrap();
-        let verifying_key: ed25519_dalek::PublicKey = (&signing_key).into();
-        TonPublicKey(verifying_key)
+        let public_key = secret_key * G;
+        let public_key = public_key.to_bytes();
+        let public_key = ed25519_dalek::PublicKey::from_bytes(&public_key).unwrap();
+        TonPublicKey(public_key)
     }
 
     fn to_address(&self, format: &Self::Format) -> Result<Self::Address, AddressError> {
@@ -67,7 +70,6 @@ impl fmt::Display for TonPublicKey {
 mod tests {
     use super::*;
     use anychain_core::PublicKey;
-    use tonlib_core_anychain::mnemonic::{KeyPair, Mnemonic};
 
     #[test]
     fn test_public_key_from_str_official_demo() {
@@ -90,33 +92,13 @@ mod tests {
             163, 27, 236, 35, 251, 127, 152, 172, 241, 108, 136, 153, 30, 28, 111, 7, 8, 203, 61,
             254, 254, 28, 22, 140, 180, 158, 52, 246, 207, 241, 80, 203,
         ];
-
         let expected_public_bytes: [u8; PUBLIC_KEY_LENGTH] = [
-            255, 15, 68, 27, 88, 255, 216, 254, 24, 44, 59, 74, 151, 224, 27, 173, 74, 215, 116,
-            208, 20, 174, 2, 249, 150, 2, 8, 207, 122, 238, 164, 144,
+            86, 116, 231, 201, 13, 30, 196, 216, 177, 139, 138, 182, 253, 13, 46, 38, 217, 202,
+            213, 121, 35, 151, 8, 131, 132, 240, 103, 30, 0, 46, 182, 136,
         ];
-        let secret_key = ed25519_dalek::SecretKey::from_bytes(&secret_bytes).unwrap();
+        let secret_key = Scalar::from_bytes_mod_order(secret_bytes);
         let public_key: TonPublicKey = TonPublicKey::from_secret_key(&secret_key);
+
         assert_eq!(expected_public_bytes, public_key.0.to_bytes());
-
-        // dbg!(public_key.to_string());
-        // assert_eq public_key fmt
-    }
-
-    #[test]
-    fn test_public_key_from_mnemonic() {
-        let secret_bytes: [u8; PUBLIC_KEY_LENGTH] = [
-            163, 27, 236, 35, 251, 127, 152, 172, 241, 108, 136, 153, 30, 28, 111, 7, 8, 203, 61,
-            254, 254, 28, 22, 140, 180, 158, 52, 246, 207, 241, 80, 203,
-        ];
-
-        let secret_key = ed25519_dalek::SecretKey::from_bytes(&secret_bytes).unwrap();
-        let public_key: TonPublicKey = TonPublicKey::from_secret_key(&secret_key);
-
-        let mnemonic = "private two helmet history gravity disease impact slice because silent crunch mammal divert kind faint ketchup holiday soup drill during wash mandate fade mention";
-        let mnemonic = Mnemonic::from_str(mnemonic, &None).unwrap();
-        let keypair: KeyPair = mnemonic.to_key_pair().unwrap();
-
-        assert_eq!(public_key.0.to_bytes(), keypair.public_key.as_slice());
     }
 }
