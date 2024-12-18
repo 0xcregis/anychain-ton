@@ -70,7 +70,6 @@ impl fmt::Display for TonPublicKey {
 mod tests {
     use super::*;
     use anychain_core::PublicKey;
-    use tonlib_core_anychain::mnemonic::{KeyPair, Mnemonic};
 
     #[test]
     fn test_public_key_from_str_official_demo() {
