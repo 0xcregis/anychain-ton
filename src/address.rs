@@ -40,7 +40,7 @@ impl Address for TonAddress {
             public_key.0.as_bytes(),
             DEFAULT_WALLET_ID,
         )
-        .map_err(|error| AddressError::Message(format!("{:?}", error)))?;
+        .map_err(|error| AddressError::Message(format!("{error:?}")))?;
 
         Ok(Self {
             address,
@@ -65,7 +65,7 @@ impl FromStr for TonAddress {
         }
 
         let address = InnerTonAddress::from_str(addr).map_err(|error| {
-            AddressError::Message(format!("Failed to parse MsgAddress: {:?}", error))
+            AddressError::Message(format!("Failed to parse MsgAddress: {error:?}"))
         })?;
         Ok(Self {
             address,

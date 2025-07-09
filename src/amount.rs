@@ -51,7 +51,7 @@ impl TonAmount {
     pub fn from_u64_str(value: &str) -> Result<u64, AmountError> {
         match value.parse::<u64>() {
             Ok(gram) => Ok(gram),
-            Err(error) => Err(AmountError::Crate("uint", format!("{:?}", error))),
+            Err(error) => Err(AmountError::Crate("uint", format!("{error:?}"))),
         }
     }
     pub fn from_gram(gram_value: &str) -> Result<Self, AmountError> {

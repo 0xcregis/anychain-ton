@@ -30,20 +30,20 @@ async fn main() {
             if info.exit_code == 0 {
                 let (_type, hex_value) = info.stack.first().unwrap();
                 seqno = u32::from_str_radix(hex_value.trim_start_matches("0x"), 16).unwrap();
-                println!("{}", seqno);
+                println!("{seqno}");
             }
         }
         Err(e) => {
-            eprintln!("{:?}", e);
+            eprintln!("{e:?}");
         }
     }
 
     let boc_str = build_bulk_transfer_boc(seqno, &create_bulk_transfer_input());
 
     match api_client.send_boc(&boc_str).await {
-        Ok(response) => println!("Response: {:#?}", response),
+        Ok(response) => println!("Response: {response:#?}"),
         Err(e) => {
-            eprintln!("{:?}", e);
+            eprintln!("{e:?}");
         }
     }
 }

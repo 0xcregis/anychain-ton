@@ -38,14 +38,14 @@ impl FromStr for TonPublicKey {
         }
 
         let base64_bytes = general_purpose::STANDARD.decode(s).map_err(|error| {
-            PublicKeyError::Crate("Failed to decode Base64 string", format!("{:?}", error))
+            PublicKeyError::Crate("Failed to decode Base64 string", format!("{error:?}"))
         })?;
 
         let mut bytes: [u8; 32] = [0u8; PUBLIC_KEY_LENGTH];
         bytes.copy_from_slice(&base64_bytes[2..34]);
 
         let public_key = ed25519_dalek::PublicKey::from_bytes(&bytes).map_err(|error| {
-            PublicKeyError::Crate("Fail to create ed25519 public key", format!("{:?}", error))
+            PublicKeyError::Crate("Fail to create ed25519 public key", format!("{error:?}"))
         })?;
 
         Ok(TonPublicKey(public_key))
