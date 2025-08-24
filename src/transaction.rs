@@ -291,7 +291,7 @@ impl Transaction for TonTransaction {
                     .unwrap(),
                 );
 
-                let fee = BigUint::from(20000000u64);
+                let fee = BigUint::from(100000000u64);
 
                 let transfer = TransferMessage::new(CommonMsgInfo::new_internal_non_bounceable(
                     jetton_wallet,
