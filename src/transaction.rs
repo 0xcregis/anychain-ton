@@ -15,6 +15,7 @@ use tonlib_core_anychain::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TonTransactionParameters {
     pub jetton_wallet: Option<TonAddress>,
+    pub fee: Option<u64>,
     pub from: TonAddress,
     pub to: TonAddress,
     pub amount: u64,
@@ -188,6 +189,7 @@ impl TonTransaction {
                     // jetton transfer
                     Some(jetton_to) => TonTransactionParameters {
                         jetton_wallet: Some(to),
+                        fee: None,
                         from,
                         to: jetton_to,
                         amount: *jetton_amount.unwrap().to_u64_digits().first().unwrap(),
@@ -199,6 +201,7 @@ impl TonTransaction {
                     // TON transfer
                     None => TonTransactionParameters {
                         jetton_wallet: None,
+                        fee: None,
                         from,
                         to,
                         amount: *amount.to_u64_digits().first().unwrap(),
@@ -291,7 +294,10 @@ impl Transaction for TonTransaction {
                     .unwrap(),
                 );
 
-                let fee = BigUint::from(100000000u64);
+                let fee = match self.params.fee {
+                    Some(fee) => BigUint::from(fee),
+                    None => BigUint::from(100000000u64),
+                };
 
                 let transfer = TransferMessage::new(CommonMsgInfo::new_internal_non_bounceable(
                     jetton_wallet,
@@ -417,6 +423,7 @@ mod tests {
 
         let params = TonTransactionParameters {
             jetton_wallet: Some(jetton_wallet),
+            fee: None,
             from: from.clone(),
             to: to.clone(),
             amount: 10000000000,
