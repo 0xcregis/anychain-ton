@@ -20,7 +20,7 @@ dependencies = [
 
 [[package]]
 name = "anychain-ton"
-version = "0.1.22"
+version = "0.1.23"
 dependencies = [
  "anychain-core",
  "base64",
