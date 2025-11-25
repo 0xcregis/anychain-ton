@@ -10,7 +10,7 @@ use {
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TonPublicKey(pub ed25519_dalek::PublicKey);
+pub struct TonPublicKey(pub ed25519_dalek::VerifyingKey);
 
 impl PublicKey for TonPublicKey {
     type SecretKey = Scalar;
@@ -20,7 +20,7 @@ impl PublicKey for TonPublicKey {
     fn from_secret_key(secret_key: &Self::SecretKey) -> Self {
         let public_key = secret_key * G;
         let public_key = public_key.to_bytes();
-        let public_key = ed25519_dalek::PublicKey::from_bytes(&public_key).unwrap();
+        let public_key = ed25519_dalek::VerifyingKey::from_bytes(&public_key).unwrap();
         TonPublicKey(public_key)
     }
 
@@ -44,7 +44,7 @@ impl FromStr for TonPublicKey {
         let mut bytes: [u8; 32] = [0u8; PUBLIC_KEY_LENGTH];
         bytes.copy_from_slice(&base64_bytes[2..34]);
 
-        let public_key = ed25519_dalek::PublicKey::from_bytes(&bytes).map_err(|error| {
+        let public_key = ed25519_dalek::VerifyingKey::from_bytes(&bytes).map_err(|error| {
             PublicKeyError::Crate("Fail to create ed25519 public key", format!("{error:?}"))
         })?;
 
